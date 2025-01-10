@@ -4,6 +4,9 @@ import { signIn } from "next-auth/react"; // Import NextAuth for authentication
 import { useRouter } from "next/router"; // For redirection after login
 import * as Yup from "yup";
 import LoginForm from "../components/auth/LoginForm";
+import ProductCard from "../components/Products/ProductCard";
+import ProductList from "../components/Products/ProductList";
+import ProductForm from "../components/Products/ProductForm";
 
 const LoginPage = () => {
   const [errorMessage, setErrorMessage] = useState(null);
@@ -33,6 +36,9 @@ const LoginPage = () => {
   return (
     <div className="container mx-auto p-6">
         <LoginForm />
+        <ProductCard />
+        <ProductList />
+        <ProductForm />
     </div>
   );
 };
