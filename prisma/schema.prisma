@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -20,13 +14,14 @@ model User {
   password  String
   role      String   @default("customer") // 'admin' or 'customer'
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   orders    Order[]
 }
 
 model Product {
   id          Int      @id @default(autoincrement())
   name        String
-  wsCode      Int
+  wsCode      Int      @unique
   salesPrice  Float
   mrp         Float
   packageSize Int
@@ -35,14 +30,29 @@ model Product {
   images      String[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  orderItems  OrderItem[]
 }
 
 model Order {
   id          Int      @id @default(autoincrement())
   userId      Int
   user        User     @relation(fields: [userId], references: [id])
-  productIds  Int[]
+  productIds  Int[]    // Can be removed if OrderItem handles this relationship.
+  items       OrderItem[]
   totalAmount Float
   status      String   @default("pending") // 'pending', 'confirmed'
   createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model OrderItem {
+  id        Int     @id @default(autoincrement()) // Changed to Int from String
+  orderId   Int
+  order     Order   @relation(fields: [orderId], references: [id])
+  productId Int
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  price     Float
+
+  @@unique([orderId, productId]) // Ensures no duplicate entries for the same product in one order
 }
