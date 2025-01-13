@@ -27,7 +27,7 @@ model Product {
   packageSize Int
   tags        String[]
   category    String
-  images      String[]
+  images      String[] // This will now store Cloudinary image URLs
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   orderItems  OrderItem[]

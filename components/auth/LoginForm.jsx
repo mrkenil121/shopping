@@ -1,14 +1,21 @@
 // components/auth/LoginForm.jsx
 import { Formik, Field, Form, ErrorMessage } from "formik";
 import Link from "next/link";
-import * as Yup from "yup";
+import { login } from "../../utils/auth"; // Assuming you have an auth utility for login
+import { loginValidationSchema } from "../../utils/validators"; // Import the centralized validation schema
+import { handleError } from "../../utils/apiClient"; // Utility to handle errors
 
-const LoginForm = ({ onSubmit, errorMessage }) => {
-  // Validation schema
-  const validationSchema = Yup.object({
-    email: Yup.string().email("Invalid email format").required("Email is required"),
-    password: Yup.string().min(6, "Password must be at least 6 characters").required("Password is required"),
-  });
+const LoginForm = ({ errorMessage }) => {
+  // Handle the form submission
+  const handleSubmit = async (values, { setSubmitting }) => {
+    try {
+      setSubmitting(true);
+      await login(values.email, values.password); // Call the login function from auth.js
+    } catch (error) {
+      setSubmitting(false);
+      handleError(error, setErrorMessage); // Handle errors from the login function
+    }
+  };
 
   return (
     <div className="container mx-auto p-6">
@@ -19,8 +26,8 @@ const LoginForm = ({ onSubmit, errorMessage }) => {
 
       <Formik
         initialValues={{ email: "", password: "" }}
-        validationSchema={validationSchema}
-        onSubmit={onSubmit} // Use centralized handleSubmit
+        validationSchema={loginValidationSchema} // Use centralized validation schema
+        onSubmit={handleSubmit} // Handle form submission with the helper function
       >
         <Form className="space-y-4">
           <div>

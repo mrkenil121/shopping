@@ -10,7 +10,7 @@ const OrderDetails = () => {
   const [isMounted, setIsMounted] = useState(false); // State to track component mount
 
   // Check if router is available and if query parameters exist
-  const orderId = router? .query.orderId; // Get the order ID from URL params (using query params in Next.js)
+  const orderId = router?.query.orderId; // Get the order ID from URL params (using query params in Next.js)
 
   useEffect(() => {
     setIsMounted(true); // Set isMounted to true when the component is mounted

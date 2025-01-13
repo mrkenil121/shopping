@@ -1,6 +1,6 @@
 import AdminLayout from '../components/layout/AdminLayout';
 import CustomerLayout from '../components/layout/CustomerLayout';
-import OrderDetails from '../components/Orders/OrderDetails';
+import OrderList from '../components/Orders/OrderList';
 
 
 export default function Home() {
@@ -16,11 +16,6 @@ export default function Home() {
         <h1>Home</h1>
         </div>
         </CustomerLayout> */}
-
-        <div>
-          <OrderDetails />
-        </div>
-
    </div>
   );
 }
