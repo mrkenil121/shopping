@@ -1,44 +1,50 @@
-// pages/login.js
-import { useState } from "react";
-import { signIn } from "next-auth/react"; // Import NextAuth for authentication
-import { useRouter } from "next/router"; // For redirection after login
-import * as Yup from "yup";
-import LoginForm from "../components/auth/LoginForm";
-import ProductCard from "../components/Products/ProductCard";
-import ProductList from "../components/Products/ProductList";
-import ProductForm from "../components/Products/ProductForm";
+import { useState } from 'react';
+import LoginForm from '../components/auth/LoginForm';
+import { useRouter } from 'next/router';
+import "../app/globals.css";
 
 const LoginPage = () => {
-  const [errorMessage, setErrorMessage] = useState(null);
+  const [errorMessage, setErrorMessage] = useState('');
   const router = useRouter();
 
-  // Form validation schema using Yup
-  const validationSchema = Yup.object({
-    email: Yup.string().email("Invalid email format").required("Email is required"),
-    password: Yup.string().min(6, "Password must be at least 6 characters").required("Password is required"),
-  });
+  const handleLoginSubmit = async (values) => {
+    const { email, password } = values;
 
-  // Handle form submission
-  const handleSubmit = async (values) => {
-    const res = await signIn("credentials", {
-      redirect: false,
-      email: values.email,
-      password: values.password,
-    });
+    // Reset any previous error message
+    setErrorMessage('');
 
-    if (res?.error) {
-      setErrorMessage(res.error);
-    } else {
-      router.push("/"); // Redirect to the homepage after successful login
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+
+        // Store user data in localStorage after successful login
+        localStorage.setItem('user', JSON.stringify({
+          id: data.user.id,
+          email: data.user.email,
+          name: data.user.name,
+        }));
+
+        // Redirect to profile or dashboard after successful login
+        router.push('/');
+      } else {
+        const data = await response.json();
+        setErrorMessage(data.message || 'Login failed. Please try again.');
+      }
+    } catch (error) {
+      console.error('Login failed:', error);
+      setErrorMessage('Something went wrong. Please try again later.');
     }
   };
 
   return (
-    <div className="container mx-auto p-6">
-        <LoginForm />
-        <ProductCard />
-        <ProductList />
-        <ProductForm />
+    <div>
+      <LoginForm onSubmit={handleLoginSubmit} errorMessage={errorMessage} />
     </div>
   );
 };

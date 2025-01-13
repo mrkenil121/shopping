@@ -1,33 +1,14 @@
 // components/auth/LoginForm.jsx
-import { useState } from "react";
-import { signIn } from "next-auth/react";
-import { useRouter } from "next/router";
 import { Formik, Field, Form, ErrorMessage } from "formik";
 import Link from "next/link";
 import * as Yup from "yup";
 
-const LoginForm = () => {
-  const [errorMessage, setErrorMessage] = useState(null);
-  const router = useRouter();
-
+const LoginForm = ({ onSubmit, errorMessage }) => {
+  // Validation schema
   const validationSchema = Yup.object({
     email: Yup.string().email("Invalid email format").required("Email is required"),
     password: Yup.string().min(6, "Password must be at least 6 characters").required("Password is required"),
   });
-
-  const handleSubmit = async (values) => {
-    const res = await signIn("credentials", {
-      redirect: false,
-      email: values.email,
-      password: values.password,
-    });
-
-    if (res?.error) {
-      setErrorMessage(res.error);
-    } else {
-      router.push("/"); // Redirect to the homepage after successful login
-    }
-  };
 
   return (
     <div className="container mx-auto p-6">
@@ -39,7 +20,7 @@ const LoginForm = () => {
       <Formik
         initialValues={{ email: "", password: "" }}
         validationSchema={validationSchema}
-        onSubmit={handleSubmit}
+        onSubmit={onSubmit} // Use centralized handleSubmit
       >
         <Form className="space-y-4">
           <div>
@@ -71,8 +52,9 @@ const LoginForm = () => {
           </button>
         </Form>
       </Formik>
+
       <div className="mt-4 text-center">
-            Don't have an account?{' '}
+        Don't have an account?{" "}
         <Link href="/signup" className="text-blue-500">
           Sign up
         </Link>

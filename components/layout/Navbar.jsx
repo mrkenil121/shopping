@@ -1,11 +1,20 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '../auth/AuthProvider'; // Import the AuthProvider hook
 
 const Navbar = () => {
   const { user, logout } = useAuth(); // Access user and logout functionality
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    // Mark as client side rendering once component is mounted
+    setIsClient(true);
+  }, []);
+
+  // Ensure we only render once on the client
+  if (!isClient) return null;
 
   return (
     <nav className="bg-gray-800 text-white">
