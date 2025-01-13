@@ -1,11 +1,25 @@
+'use client'
+
 import React, { useState, useEffect } from "react";
-import { useParams, useHistory } from "react-router-dom"; // Assuming you're using React Router for navigation
-import { useAuth } from "../components/auth/AuthProvider"; // Assuming you have an AuthProvider for managing user state
+import { useRouter } from "next/compat/router"; // Import useRouter from next/router
+import { useAuth } from "../auth/AuthProvider"; // Assuming you have an AuthProvider for managing user state
 
 const OrderDetails = () => {
   const { user } = useAuth(); // Get current user details (ensure admin authentication)
-  const { orderId } = useParams(); // Get the order ID from URL params
-  const history = useHistory(); // For navigation
+  const router = useRouter(); // Directly use useRouter here
+  const [isMounted, setIsMounted] = useState(false); // State to track component mount
+
+  // Check if router is available and if query parameters exist
+  const orderId = router? .query.orderId; // Get the order ID from URL params (using query params in Next.js)
+
+  useEffect(() => {
+    setIsMounted(true); // Set isMounted to true when the component is mounted
+  }, []);
+
+  // Prevent rendering if component is not yet mounted or orderId is not available
+  if (!isMounted || !orderId) {
+    return <p>Loading...</p>;
+  }
 
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -15,6 +29,8 @@ const OrderDetails = () => {
   // Fetch order details from the server
   useEffect(() => {
     const fetchOrderDetails = async () => {
+      setLoading(true);
+      setError(null);
       try {
         const response = await fetch(`/api/orders/${orderId}`);
         if (!response.ok) {
@@ -30,11 +46,19 @@ const OrderDetails = () => {
       }
     };
 
-    fetchOrderDetails();
+    if (orderId) {
+      fetchOrderDetails();
+    }
   }, [orderId]);
 
   // Handle updating the order status
   const handleUpdateStatus = async () => {
+    // Ensure status is actually changed before making the request
+    if (order.status === status) {
+      alert("Status is already set to this value.");
+      return;
+    }
+
     try {
       const response = await fetch(`/api/orders/${orderId}`, {
         method: "PUT",
@@ -58,15 +82,16 @@ const OrderDetails = () => {
 
   // Handle navigation back to the order list
   const handleGoBack = () => {
-    history.push("/admin/orders");
+    router.push("/admin/orders"); // Using Next.js router.push to navigate
   };
 
+  // Loading and error handling
   if (loading) {
     return <p>Loading order details...</p>;
   }
 
   if (error) {
-    return <p>Error: {error}</p>;
+    return <p className="text-red-600">Error: {error}</p>;
   }
 
   return (

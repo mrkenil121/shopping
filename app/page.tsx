@@ -1,5 +1,6 @@
 import AdminLayout from '../components/layout/AdminLayout';
 import CustomerLayout from '../components/layout/CustomerLayout';
+import OrderDetails from '../components/Orders/OrderDetails';
 
 
 export default function Home() {
@@ -10,11 +11,15 @@ export default function Home() {
         <h1>Home</h1>
       </div>
       </AdminLayout> */}
-      <CustomerLayout>
+      {/* <CustomerLayout>
       <div className="container">
         <h1>Home</h1>
         </div>
-        </CustomerLayout>
+        </CustomerLayout> */}
+
+        <div>
+          <OrderDetails />
+        </div>
 
    </div>
   );
