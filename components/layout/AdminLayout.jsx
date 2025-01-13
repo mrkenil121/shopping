@@ -1,9 +1,27 @@
-import React from "react";
-import { Link } from "react-router-dom"; // Assuming you're using React Router for navigation
-import { useAuth } from "../components/auth/AuthProvider"; // Assuming you have an AuthProvider for managing user state
+'use client'
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/compat/router'; // Correct import for Next.js 13 and later
+import { useAuth } from '../auth/AuthProvider';
+import Link from 'next/link';
 
 const AdminLayout = ({ children }) => {
-  const { user, logout } = useAuth(); // Access the user data from AuthProvider
+  const { user, logout } = useAuth();
+  const [isClient, setIsClient] = useState(false); // To track whether the component is mounted client-side
+  const router = useRouter();
+
+  useEffect(() => {
+    setIsClient(true); // Set client flag to true on mount
+  }, []);
+
+  if (!isClient) return null; // Prevent server-side rendering issues
+
+  const handleLogout = () => {
+    // Clear localStorage and redirect to login
+    localStorage.removeItem('auth_token');
+    logout();
+    router.push('/login');
+  };
 
   return (
     <div className="flex min-h-screen bg-gray-100">
@@ -15,48 +33,33 @@ const AdminLayout = ({ children }) => {
         <nav className="mt-8">
           <ul>
             <li>
-              <Link
-                to="/admin/dashboard"
-                className="block py-2 px-4 hover:bg-gray-700"
-              >
+              <Link href="/admin/dashboard" className="block py-2 px-4 hover:bg-gray-700">
                 Dashboard
               </Link>
             </li>
             <li>
-              <Link
-                to="/admin/orders"
-                className="block py-2 px-4 hover:bg-gray-700"
-              >
+              <Link href="/admin/orders" className="block py-2 px-4 hover:bg-gray-700">
                 Orders
               </Link>
             </li>
             <li>
-              <Link
-                to="/admin/products"
-                className="block py-2 px-4 hover:bg-gray-700"
-              >
+              <Link href="/admin/products" className="block py-2 px-4 hover:bg-gray-700">
                 Products
               </Link>
             </li>
             <li>
-              <Link
-                to="/admin/customers"
-                className="block py-2 px-4 hover:bg-gray-700"
-              >
+              <Link href="/admin/customers" className="block py-2 px-4 hover:bg-gray-700">
                 Customers
               </Link>
             </li>
             <li>
-              <Link
-                to="/admin/reports"
-                className="block py-2 px-4 hover:bg-gray-700"
-              >
+              <Link href="/admin/reports" className="block py-2 px-4 hover:bg-gray-700">
                 Reports
               </Link>
             </li>
             <li>
               <button
-                onClick={logout}
+                onClick={handleLogout}
                 className="w-full py-2 px-4 mt-4 bg-red-600 text-white hover:bg-red-700"
               >
                 Log Out
