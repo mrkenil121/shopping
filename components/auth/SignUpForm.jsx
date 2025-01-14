@@ -1,12 +1,9 @@
 import { useFormik } from 'formik';
-import { signUpSchema } from '@/utils/validators';  // Import the sign-up validation schema
+import * as Yup from 'yup';
 import Link from 'next/link';
-import { apiClient } from '@/utils/apiClient'; // Import the apiClient to make API calls
-import { useState } from 'react'; // Import useState for error handling
 import "../../app/globals.css";
 
-const SignUpForm = () => {
-  const [error, setError] = useState(null); // State to hold error messages
+const SignUpForm = ({ onSubmit, error }) => {
 
   const formik = useFormik({
     initialValues: {
@@ -15,22 +12,27 @@ const SignUpForm = () => {
       password: '',
       confirmPassword: '',
     },
-    validationSchema: signUpSchema, // Use the imported validation schema
+
+    validationSchema: Yup.object({
+      name: Yup.string()
+        .required('Name is required')
+        .min(3, 'Name must be at least 3 characters')
+        .max(50, 'Name must be at most 50 characters'),
+      email: Yup.string()
+        .email('Invalid email address')
+        .required('Email is required'),
+      password: Yup.string()
+        .min(6, 'Password must be at least 6 characters')
+        .required('Password is required'),
+      confirmPassword: Yup.string()
+        .oneOf([Yup.ref('password'), null], 'Passwords must match')
+        .required('Confirm password is required'),
+    }),
+
     onSubmit: async (values, { setSubmitting }) => {
       setSubmitting(true);
-      try {
-        // Make the API call to sign up the user
-        const response = await apiClient.post('/api/auth/signup', values);
-        // Handle success (e.g., redirect to login or dashboard)
-        if (response.status === 201) {
-          window.location.href = '/login'; // Redirect to login page after successful sign-up
-        }
-      } catch (err) {
-        // Handle error
-        setError(err.response?.data?.message || 'An error occurred during signup');
-      } finally {
-        setSubmitting(false);
-      }
+      await onSubmit(values);
+      setSubmitting(false);
     },
   });
 

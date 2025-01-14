@@ -18,6 +18,7 @@
         "name": "next"
       }
     ],
+    "baseUrl": ".",
     "paths": {
       "@/*": ["./*"],
       "@/prisma": ["prisma"]  // Add this line to resolve `@/prisma`
