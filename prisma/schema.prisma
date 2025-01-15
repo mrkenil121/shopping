@@ -15,7 +15,6 @@ model User {
   role      String   @default("customer") // 'admin' or 'customer'
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  orders    Order[]
 }
 
 model Product {
@@ -37,20 +36,17 @@ model Order {
   id          Int      @id @default(autoincrement())
   userId      Int
   user        User     @relation(fields: [userId], references: [id])
-  productIds  Int[]    // Can be removed if OrderItem handles this relationship.
-  items       OrderItem[]
   totalAmount Float
-  status      String   @default("pending") // 'pending', 'confirmed'
+  status      String   @default("pending")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
 
+
 model OrderItem {
   id        Int     @id @default(autoincrement()) // Changed to Int from String
   orderId   Int
-  order     Order   @relation(fields: [orderId], references: [id])
   productId Int
-  product   Product @relation(fields: [productId], references: [id])
   quantity  Int
   price     Float
 

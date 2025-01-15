@@ -5,6 +5,12 @@ import { prisma } from "@/prisma/index"; // Assuming you have Prisma set up
 async function handler(req, res) {
   const { method } = req;
   const { id } = req.query; // Get order ID from the URL parameter
+  const orderId = parseInt(id);
+
+  // If ID is not valid, return a 400 error
+  if (isNaN(orderId)) {
+    return res.status(400).json({ message: "Invalid order ID." });
+  }
 
   // Get the session to check if the user is authenticated
   const session = await getSession({ req });
@@ -19,8 +25,8 @@ async function handler(req, res) {
       case "GET":
         // Fetch order details by ID
         const order = await prisma.order.findUnique({
-          where: { id: parseInt(id) }, // Find the order by ID
-          include: { items: true }, // Include the items related to the order
+          where: { id: orderId },
+          include: { items: true },
         });
 
         // If no order is found, return a 404 error
@@ -28,34 +34,40 @@ async function handler(req, res) {
           return res.status(404).json({ message: "Order not found." });
         }
 
-        // Return the order details
         return res.status(200).json(order);
 
       case "PUT":
-        // Update order details (only allowed for certain users)
+        // Only admins can update orders
         if (session.user.role !== "admin") {
           return res.status(403).json({ message: "You are not authorized to update this order." });
         }
 
-        const { status, totalAmount } = req.body; // Extract the data to update
+        const { status, totalAmount } = req.body;
+
+        // Validate status if provided
+        const validStatuses = ["pending", "confirmed", "shipped"];
+        if (status && !validStatuses.includes(status)) {
+          return res.status(400).json({ message: "Invalid status." });
+        }
+
         const updatedOrder = await prisma.order.update({
-          where: { id: parseInt(id) },
+          where: { id: orderId },
           data: {
-            status: status || undefined, // If provided, update status
-            totalAmount: totalAmount || undefined, // If provided, update total amount
+            status: status || undefined,
+            totalAmount: totalAmount || undefined,
           },
         });
 
         return res.status(200).json(updatedOrder);
 
       case "DELETE":
-        // Delete an order (only allowed for admins)
+        // Only admins can delete orders
         if (session.user.role !== "admin") {
           return res.status(403).json({ message: "You are not authorized to delete this order." });
         }
 
         const deletedOrder = await prisma.order.delete({
-          where: { id: parseInt(id) },
+          where: { id: orderId },
         });
 
         return res.status(200).json(deletedOrder);
@@ -65,8 +77,7 @@ async function handler(req, res) {
         return res.status(405).json({ message: "Method Not Allowed" });
     }
   } catch (error) {
-    // Return server error if something goes wrong
-    console.error("Error handling order:", error);
+    console.error(`[${method}]: Error with order ID ${id}`, error);
     return res.status(500).json({ message: "Internal server error" });
   }
 }

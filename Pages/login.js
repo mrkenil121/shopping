@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import LoginForm from '../components/auth/LoginForm';
 import { useRouter } from 'next/router';
+import { jwtDecode } from 'jwt-decode';
 import "../app/globals.css";
 
 const LoginPage = () => {
@@ -20,20 +21,24 @@ const LoginPage = () => {
         body: JSON.stringify({ email, password }),
       });
 
+      const data = await response.json(); // Only call json() once
+
       if (response.ok) {
-        const data = await response.json();
+        // Decode the JWT token to get user info (including role)
+        const decodedToken = jwtDecode(data.token);
 
         // Store user data in localStorage after successful login
         localStorage.setItem('user', JSON.stringify({
-          id: data.user.id,
-          email: data.user.email,
-          name: data.user.name,
+          id: decodedToken.id,
+          email: decodedToken.email,
+          name: decodedToken.name,
+          role: decodedToken.role, // Store role in localStorage
         }));
 
         // Redirect to profile or dashboard after successful login
         router.push('/');
       } else {
-        const data = await response.json();
+        // Set error message only if the login failed
         setErrorMessage(data.message || 'Login failed. Please try again.');
       }
     } catch (error) {

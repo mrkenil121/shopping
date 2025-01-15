@@ -1,59 +1,44 @@
-import { prisma } from "@/prisma/index"; // Adjust the path based on your project structure
-import { authMiddleware } from "@/middlewares/authMiddleware";
-import { adminMiddleware } from "@/middlewares/adminMiddleware";
-import { uploadImage } from "@/utils/cloudinary"; // Import the uploadImage function from utils/cloudinary
+import { prisma } from "@/prisma/index";
 
-// Handler for managing products
-async function handler(req, res) {
-  const { method } = req;
-
+export default async function handler(req, res) {
   try {
-    // GET request: Fetch all products
-    if (method === "GET") {
-      const products = await prisma.product.findMany();
-      return res.status(200).json(products);
+    switch (req.method) {
+      case "GET":
+        await handleGet(req, res);
+        break;
+      default:
+        res.setHeader("Allow", ["GET"]);
+        res.status(405).json({ message: `Method ${req.method} not allowed` });
     }
-
-    // POST request: Create a new product
-    if (method === "POST") {
-      const { name, wsCode, salesPrice, mrp, packageSize, tags, category, images } = req.body;
-
-      // Validate the input data (basic validation can be expanded based on needs)
-      if (!name || !wsCode || !salesPrice || !mrp || !tags || !category || !images) {
-        return res.status(400).json({ message: "All fields are required" });
-      }
-
-      // Upload image to Cloudinary
-      const uploadedImages = [];
-      for (let i = 0; i < images.length; i++) {
-        const uploadedImage = await uploadImage(images[i]);
-        uploadedImages.push(uploadedImage.secure_url); // Store the Cloudinary URL
-      }
-
-      // Create the new product
-      const newProduct = await prisma.product.create({
-        data: {
-          name,
-          wsCode,
-          salesPrice,
-          mrp,
-          packageSize,
-          tags,
-          category,
-          images: uploadedImages, // Save Cloudinary URLs
-        },
-      });
-
-      return res.status(201).json(newProduct);
-    }
-
-    // Handle unsupported methods
-    return res.status(405).json({ message: "Method Not Allowed" });
   } catch (error) {
-    console.error("Error:", error);
-    return res.status(500).json({ message: "Internal Server Error", error: error.message });
+    console.error("Error in /products/index.js:", error);
+    res.status(500).json({ message: "Internal Server Error", error: error.message });
   }
 }
 
-// Protect the handler with both authentication and admin middleware
-export default authMiddleware(adminMiddleware(handler));
+// GET: Fetch all products with pagination
+async function handleGet(req, res) {
+  const { page = 1, pageSize = 10 } = req.query;
+
+  // Validate pagination
+  const pageNumber = Math.max(1, parseInt(page, 10));
+  const pageSizeNumber = Math.max(1, parseInt(pageSize, 10));
+
+  const skip = (pageNumber - 1) * pageSizeNumber;
+  const take = pageSizeNumber;
+
+  const [products, totalCount] = await Promise.all([
+    prisma.product.findMany({
+      skip,
+      take,
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.product.count(),
+  ]);
+
+  res.status(200).json({
+    products,
+    totalCount,
+    totalPages: Math.ceil(totalCount / pageSizeNumber),
+  });
+}

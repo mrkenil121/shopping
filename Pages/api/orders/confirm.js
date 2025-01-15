@@ -19,6 +19,11 @@ async function handler(req, res) {
     return res.status(403).json({ message: "You are not authorized to confirm this order." });
   }
 
+  // Ensure the order ID is a valid number
+  if (isNaN(id)) {
+    return res.status(400).json({ message: "Invalid order ID." });
+  }
+
   try {
     switch (method) {
       case "POST":
@@ -30,11 +35,6 @@ async function handler(req, res) {
           },
         });
 
-        // If no order is found, return a 404 error
-        if (!confirmedOrder) {
-          return res.status(404).json({ message: "Order not found." });
-        }
-
         // Return the confirmed order
         return res.status(200).json(confirmedOrder);
 
@@ -43,6 +43,11 @@ async function handler(req, res) {
         return res.status(405).json({ message: "Method Not Allowed" });
     }
   } catch (error) {
+    // If the order doesn't exist or other error occurs, return a 404 error
+    if (error.code === "P2025") {
+      return res.status(404).json({ message: "Order not found." });
+    }
+
     // Return server error if something goes wrong
     console.error("Error confirming order:", error);
     return res.status(500).json({ message: "Internal server error" });

@@ -1,6 +1,11 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import { getCartItems, removeFromCart, updateCartItemQuantity } from "@/utils/cartUtils"; // Custom utilities for cart logic
+import { 
+  getCartItems, 
+  removeFromCart, 
+  updateCartItemQuantity, 
+  clearCart 
+} from "@/utils/cartUtils"; // Import cart utility functions
 
 const Cart = () => {
   const [cartItems, setCartItems] = useState([]);
@@ -8,8 +13,9 @@ const Cart = () => {
   const router = useRouter();
 
   useEffect(() => {
+    // Fetch cart items from localStorage
     const fetchCartItems = () => {
-      const items = getCartItems(); // Fetch cart items from localStorage or API
+      const items = getCartItems();
       setCartItems(items);
       setLoading(false);
     };
@@ -17,18 +23,35 @@ const Cart = () => {
     fetchCartItems();
   }, []);
 
+  // Handle removing an item from the cart
   const handleRemoveItem = (productId) => {
-    removeFromCart(productId); // Custom function to remove item from cart
+    removeFromCart(productId);
     setCartItems(getCartItems());
   };
 
+  // Handle updating the quantity of a cart item
   const handleUpdateQuantity = (productId, quantity) => {
-    updateCartItemQuantity(productId, quantity); // Custom function to update cart item quantity
-    setCartItems(getCartItems());
+    if (quantity < 1) {
+      handleRemoveItem(productId);
+    } else {
+      updateCartItemQuantity(productId, quantity);
+      setCartItems(getCartItems());
+    }
   };
 
+  // Handle checkout action
   const handleCheckout = () => {
+    if (cartItems.length === 0) {
+      alert("Your cart is empty. Please add items before proceeding to checkout.");
+      return;
+    }
     router.push("/checkout"); // Redirect to checkout page
+  };
+
+  // Handle clearing the entire cart
+  const handleClearCart = () => {
+    clearCart();
+    setCartItems([]);
   };
 
   if (loading) {
@@ -64,7 +87,7 @@ const Cart = () => {
                     min="1"
                     value={item.quantity}
                     onChange={(e) =>
-                      handleUpdateQuantity(item.productId, e.target.value)
+                      handleUpdateQuantity(item.productId, parseInt(e.target.value, 10))
                     }
                     className="w-16 p-2 border rounded"
                   />
@@ -84,7 +107,13 @@ const Cart = () => {
             ))}
           </tbody>
         </table>
-        <div className="mt-4 text-right">
+        <div className="mt-4 flex justify-between">
+          <button
+            onClick={handleClearCart}
+            className="px-6 py-2 bg-red-600 text-white rounded"
+          >
+            Clear Cart
+          </button>
           <button
             onClick={handleCheckout}
             className="px-6 py-2 bg-blue-600 text-white rounded"

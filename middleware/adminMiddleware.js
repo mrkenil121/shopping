@@ -1,41 +1,38 @@
-import { NextApiRequest, NextApiResponse } from "next";
-import { getSession } from "next-auth/react";
-import prisma from "@/lib/prisma"; // Adjust the path to your Prisma client
+import jwt from 'jsonwebtoken';
+import { parseCookies } from 'nookies';
+import { prisma } from '@/prisma';
 
-/**
- * Middleware to verify if the user has admin privileges.
- * @param {Function} handler - The next function to call if the user is an admin.
- */
-export function adminMiddleware(handler) {
-  return async (req = NextApiRequest, res = NextApiResponse) => {
-    try {
-      // Get the session from NextAuth
-      const session = await getSession({ req });
-
-      if (!session) {
-        return res.status(401).json({ message: "Unauthorized: No session found" });
-      }
-
-      // Fetch the user from the database based on their email
-      const user = await prisma.user.findUnique({
-        where: { email: session.user.email },
-        select: { role: true },
-      });
-
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      // Check if the user role is "admin"
-      if (user.role !== "admin") {
-        return res.status(403).json({ message: "Forbidden: Admins only" });
-      }
-
-      // Proceed to the next function
-      return handler(req, res);
-    } catch (error) {
-      console.error("Admin middleware error:", error);
-      return res.status(500).json({ message: "Internal Server Error" });
+export const adminMiddleware = (handler) => async (req, res) => {
+  try {
+    // Extract the token from Authorization header or cookies
+    const token = req.headers.authorization?.replace("Bearer ", "");
+    
+    if (!token) {
+      return res.status(401).json({ message: "Unauthorized: Authentication token not found." });
     }
-  };
-}
+
+    // Verify the token
+    const decoded = JSON.parse(token);
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.id },
+      select: { role: true },
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (user.role !== "admin") {
+      return res.status(403).json({ message: "Forbidden: Admins only" });
+    }
+
+    // Attach user information to request object
+    req.user = { id: decoded.id, email: decoded.email, name: decoded.name, role: decoded.role };
+
+    // Continue with the next handler
+    return handler(req, res);
+  } catch (error) {
+    console.error("Error in admin middleware:", error);
+    return res.status(500).json({ message: "Internal Server Error: Error verifying admin role." });
+  }
+};

@@ -1,13 +1,12 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import { getSession } from "next-auth/react"; // Assuming you're using next-auth for authentication
-import { format } from "date-fns"; // To format the date of the orders
+import { format } from "date-fns";
 import Link from "next/link";
 
 // Utility functions to interact with the API
-const fetchOrders = async (userId) => {
+const fetchOrders = async (id) => {
   try {
-    const res = await fetch(`/api/orders?userId=${userId}`);
+    const res = await fetch(`/api/orders?id=${id}`);
     if (!res.ok) {
       throw new Error("Failed to fetch orders");
     }
@@ -19,6 +18,20 @@ const fetchOrders = async (userId) => {
   }
 };
 
+// Function to decode the JWT token and get userId
+const getUserIdFromToken = () => {
+  const token = localStorage.getItem("user"); // Assuming you store the JWT in localStorage under "jwt"
+  if (!token) return null;
+
+  try {
+    const decoded = JSON.parse(token); // Decode JWT payload (base64)
+    return decoded.id; // Assuming the userId is in the payload
+  } catch (error) {
+    console.error("Error decoding JWT:", error);
+    return null;
+  }
+};
+
 const Orders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -26,13 +39,12 @@ const Orders = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      const session = await getSession();
-      if (!session) {
-        router.push("/auth/signin"); // Redirect to login if not authenticated
+      const userId = getUserIdFromToken(); // Get userId from JWT
+      if (!userId) {
+        router.push("/login"); // Redirect to login if no userId found in JWT
         return;
       }
 
-      const userId = session.user.id; // Assuming you have the user id in session
       const orders = await fetchOrders(userId);
       setOrders(orders);
       setLoading(false);

@@ -18,9 +18,16 @@ async function handler(req, res) {
       // Fetch all orders if the user is an admin or their own orders if the user is not an admin
       try {
         const orders = session.user.role === "admin"
-          ? await prisma.order.findMany()  // Admin can see all orders
+          ? await prisma.order.findMany({
+              include: {
+                items: { include: { product: true } }, // Include product details for admin view
+              },
+            })
           : await prisma.order.findMany({
               where: { userId: session.user.id }, // Non-admin users can only see their own orders
+              include: {
+                items: { include: { product: true } }, // Include product details for non-admin users
+              },
             });
 
         return res.status(200).json(orders);
@@ -38,19 +45,38 @@ async function handler(req, res) {
         return res.status(400).json({ message: "Product IDs and total amount are required." });
       }
 
-      // Create a new order in the database
       try {
+        // Fetch the product details (e.g., prices) before creating the order
+        const products = await prisma.product.findMany({
+          where: { id: { in: productIds } },
+        });
+
+        if (products.length !== productIds.length) {
+          return res.status(400).json({ message: "Some products were not found." });
+        }
+
+        // Calculate the total amount based on fetched product prices
+        const calculatedTotalAmount = products.reduce((acc, product) => {
+          const productInOrder = productIds.find(id => id === product.id);
+          // Assuming 1 quantity per product
+          return acc + (product.price * 1); // Multiply by quantity if it's not 1
+        }, 0);
+
+        if (calculatedTotalAmount !== totalAmount) {
+          return res.status(400).json({ message: "Total amount does not match the sum of product prices." });
+        }
+
+        // Create the order with associated products
         const order = await prisma.order.create({
           data: {
             userId: session.user.id, // Associate the order with the logged-in user
-            productIds: productIds, // Array of product IDs
-            totalAmount: totalAmount, // Total price of the order
+            totalAmount: totalAmount, // The provided total amount
             status: "pending", // New orders are created with a pending status
             items: {
-              create: productIds.map(productId => ({
+              create: productIds.map((productId) => ({
                 productId: productId,
-                quantity: 1, // Assuming default quantity is 1. Modify if needed
-                price: 100.00, // Example price. Modify according to actual pricing logic
+                quantity: 1, // Default quantity is 1
+                price: products.find((product) => product.id === productId).price, // Use the actual product price
               })),
             },
           },

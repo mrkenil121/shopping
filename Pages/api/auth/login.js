@@ -1,4 +1,5 @@
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';  // Import jsonwebtoken for token creation
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
@@ -37,10 +38,22 @@ export default async function handler(req, res) {
       return res.status(401).json({ message: 'Invalid login credentials.' });
     }
 
-    // Send success response with user info (excluding password)
+    // Create JWT token with user info (including role)
+    const token = jwt.sign(
+      { 
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,  // Include the role in the JWT token
+      },
+      process.env.JWT_SECRET,  // Your JWT secret key
+      { expiresIn: '1h' }  // Token expires in 1 hour (adjust as needed)
+    );
+
+    // Send success response with token
     return res.status(200).json({
       message: 'Login successful',
-      user: { id: user.id, email: user.email, name: user.name },
+      token,  // Send the JWT token in the response
     });
   } catch (error) {
     console.error('Login error:', error);
