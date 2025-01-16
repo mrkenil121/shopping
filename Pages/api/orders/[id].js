@@ -1,53 +1,86 @@
-import { getSession } from "next-auth/react";
-import { prisma } from "@/prisma/index"; // Assuming you have Prisma set up
+import jwt from "jsonwebtoken";
+import { prisma } from "@/prisma/index";
 
-// API handler for fetching, updating, and deleting an order by ID
+const JWT_SECRET = process.env.JWT_SECRET;
+
+async function verifyToken(req) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith("Bearer ")) {
+    throw new Error("Authentication token missing or invalid.");
+  }
+
+  const token = authHeader.split(" ")[1];
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (!decoded.id || !decoded.role) {
+      throw new Error("Invalid token payload");
+    }
+    return decoded;
+  } catch (error) {
+    throw new Error(error.message || "Invalid or expired token.");
+  }
+}
+
 async function handler(req, res) {
   const { method } = req;
-  const { id } = req.query; // Get order ID from the URL parameter
+  const { id } = req.query;
   const orderId = parseInt(id);
 
-  // If ID is not valid, return a 400 error
   if (isNaN(orderId)) {
     return res.status(400).json({ message: "Invalid order ID." });
   }
 
-  // Get the session to check if the user is authenticated
-  const session = await getSession({ req });
-
-  // If no session, return unauthorized error
-  if (!session) {
-    return res.status(401).json({ message: "You must be logged in to access this resource." });
-  }
-
   try {
+    const user = await verifyToken(req);
+
     switch (method) {
-      case "GET":
-        // Fetch order details by ID
+      case "GET": {
         const order = await prisma.order.findUnique({
           where: { id: orderId },
           include: { items: true },
         });
 
-        // If no order is found, return a 404 error
         if (!order) {
           return res.status(404).json({ message: "Order not found." });
         }
 
-        return res.status(200).json(order);
+        if (user.role !== "admin" && order.userId !== user.id) {
+          return res.status(403).json({ 
+            message: "You are not authorized to view this order." 
+          });
+        }
 
-      case "PUT":
-        // Only admins can update orders
-        if (session.user.role !== "admin") {
-          return res.status(403).json({ message: "You are not authorized to update this order." });
+        return res.status(200).json(order);
+      }
+
+      case "PUT": {
+        if (user.role !== "admin") {
+          return res.status(403).json({ 
+            message: "You are not authorized to update this order." 
+          });
         }
 
         const { status, totalAmount } = req.body;
-
-        // Validate status if provided
-        const validStatuses = ["pending", "confirmed", "shipped"];
+        const validStatuses = ["pending", "confirmed", "shipped", "delivered", "cancelled"];
+        
         if (status && !validStatuses.includes(status)) {
-          return res.status(400).json({ message: "Invalid status." });
+          return res.status(400).json({ 
+            message: `Invalid status. Must be one of: ${validStatuses.join(", ")}` 
+          });
+        }
+
+        if (totalAmount && (typeof totalAmount !== 'number' || totalAmount <= 0)) {
+          return res.status(400).json({ 
+            message: "Total amount must be a positive number." 
+          });
+        }
+
+        const existingOrder = await prisma.order.findUnique({
+          where: { id: orderId }
+        });
+
+        if (!existingOrder) {
+          return res.status(404).json({ message: "Order not found." });
         }
 
         const updatedOrder = await prisma.order.update({
@@ -59,11 +92,21 @@ async function handler(req, res) {
         });
 
         return res.status(200).json(updatedOrder);
+      }
 
-      case "DELETE":
-        // Only admins can delete orders
-        if (session.user.role !== "admin") {
-          return res.status(403).json({ message: "You are not authorized to delete this order." });
+      case "DELETE": {
+        if (user.role !== "admin") {
+          return res.status(403).json({ 
+            message: "You are not authorized to delete this order." 
+          });
+        }
+
+        const existingOrder = await prisma.order.findUnique({
+          where: { id: orderId }
+        });
+
+        if (!existingOrder) {
+          return res.status(404).json({ message: "Order not found." });
         }
 
         const deletedOrder = await prisma.order.delete({
@@ -71,13 +114,16 @@ async function handler(req, res) {
         });
 
         return res.status(200).json(deletedOrder);
+      }
 
       default:
-        // If method is not supported, return 405 (Method Not Allowed)
         return res.status(405).json({ message: "Method Not Allowed" });
     }
   } catch (error) {
     console.error(`[${method}]: Error with order ID ${id}`, error);
+    if (error.message.includes("Authentication")) {
+      return res.status(401).json({ message: error.message });
+    }
     return res.status(500).json({ message: "Internal server error" });
   }
 }

@@ -1,95 +1,159 @@
-import { getSession } from "next-auth/react";
-import { prisma } from "@/prisma/index"; // Assuming you have Prisma set up
+import jwt from "jsonwebtoken";
+import { prisma } from "@/prisma/index";
+import dotenv from 'dotenv';
+dotenv.config();
 
-// API handler for creating and fetching orders
+const JWT_SECRET = process.env.JWT_SECRET;
+
+// Enhanced authentication with role validation
+const authenticateUser = (req) => {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader?.startsWith("Bearer ")) {
+    throw new Error("Authorization token missing or invalid.");
+  }
+
+  const token = authHeader.split(" ")[1];
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    
+    // Validate required fields in token
+    if (!decoded.id || !decoded.role) {
+      throw new Error("Invalid token payload");
+    }
+    
+    return decoded;
+  } catch (error) {
+    throw new Error(error.message || "Invalid token.");
+  }
+};
+
+// Rate limiting middleware (optional but recommended)
+const rateLimit = {
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100 // limit each IP to 100 requests per windowMs
+};
+
 async function handler(req, res) {
   const { method } = req;
 
-  // Get the session to check if the user is authenticated
-  const session = await getSession({ req });
-
-  // If no session, return unauthorized error
-  if (!session) {
-    return res.status(401).json({ message: "You must be logged in to access this resource." });
+  let user;
+  try {
+    user = authenticateUser(req);
+  } catch (error) {
+    return res.status(401).json({ message: error.message });
   }
 
   switch (method) {
-    case "GET":
-      // Fetch all orders if the user is an admin or their own orders if the user is not an admin
+    case "GET": {
       try {
-        const orders = session.user.role === "admin"
-          ? await prisma.order.findMany({
-              include: {
-                items: { include: { product: true } }, // Include product details for admin view
-              },
-            })
-          : await prisma.order.findMany({
-              where: { userId: session.user.id }, // Non-admin users can only see their own orders
-              include: {
-                items: { include: { product: true } }, // Include product details for non-admin users
-              },
-            });
+        // Add pagination support
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
 
-        return res.status(200).json(orders);
+        const [orders, total] = await prisma.$transaction([
+          prisma.order.findMany({
+            where: user.role === "admin" ? {} : { userId: user.id },
+            include: {
+              items: {
+                include: { product: true }
+              },
+            },
+            skip,
+            take: limit,
+            orderBy: { createdAt: 'desc' }
+          }),
+          prisma.order.count({
+            where: user.role === "admin" ? {} : { userId: user.id }
+          })
+        ]);
+
+        return res.status(200).json({
+          orders,
+          pagination: {
+            total,
+            pages: Math.ceil(total / limit),
+            currentPage: page
+          }
+        });
       } catch (error) {
         console.error("Error fetching orders:", error);
         return res.status(500).json({ message: "Internal server error" });
       }
+    }
 
-    case "POST":
-      // Create a new order
+    case "POST": {
       const { productIds, totalAmount } = req.body;
 
-      // Check if productIds and totalAmount are provided
-      if (!productIds || productIds.length === 0 || !totalAmount) {
-        return res.status(400).json({ message: "Product IDs and total amount are required." });
+      if (!productIds || !Array.isArray(productIds) || 
+          productIds.length === 0 || 
+          typeof totalAmount !== 'number' || 
+          totalAmount <= 0) {
+        return res.status(400).json({ 
+          message: "Invalid request body. Product IDs must be an array and total amount must be a positive number." 
+        });
       }
 
       try {
-        // Fetch the product details (e.g., prices) before creating the order
-        const products = await prisma.product.findMany({
-          where: { id: { in: productIds } },
-        });
+        const order = await prisma.$transaction(async (prisma) => {
+          // Check product availability and validate prices
+          const products = await prisma.product.findMany({
+            where: { 
+              id: { in: productIds },
+              stock: { gt: 0 }
+            }
+          });
 
-        if (products.length !== productIds.length) {
-          return res.status(400).json({ message: "Some products were not found." });
-        }
+          if (products.length !== productIds.length) {
+            throw new Error("Some products are unavailable or invalid");
+          }
 
-        // Calculate the total amount based on fetched product prices
-        const calculatedTotalAmount = products.reduce((acc, product) => {
-          const productInOrder = productIds.find(id => id === product.id);
-          // Assuming 1 quantity per product
-          return acc + (product.price * 1); // Multiply by quantity if it's not 1
-        }, 0);
+          // Validate total amount matches products
+          const calculatedTotal = products.reduce((sum, product) => 
+            sum + product.price, 0);
 
-        if (calculatedTotalAmount !== totalAmount) {
-          return res.status(400).json({ message: "Total amount does not match the sum of product prices." });
-        }
+          if (Math.abs(calculatedTotal - totalAmount) > 0.01) {
+            throw new Error("Total amount doesn't match product prices");
+          }
 
-        // Create the order with associated products
-        const order = await prisma.order.create({
-          data: {
-            userId: session.user.id, // Associate the order with the logged-in user
-            totalAmount: totalAmount, // The provided total amount
-            status: "pending", // New orders are created with a pending status
-            items: {
-              create: productIds.map((productId) => ({
-                productId: productId,
-                quantity: 1, // Default quantity is 1
-                price: products.find((product) => product.id === productId).price, // Use the actual product price
-              })),
+          // Create order with items
+          return await prisma.order.create({
+            data: {
+              userId: user.id,
+              totalAmount,
+              status: "pending",
+              items: {
+                create: productIds.map((productId) => {
+                  const product = products.find(p => p.id === productId);
+                  return {
+                    productId,
+                    quantity: 1,
+                    price: product.price,
+                  };
+                }),
+              },
             },
-          },
+            include: { 
+              items: {
+                include: { product: true }
+              }
+            },
+          });
         });
 
-        return res.status(201).json(order); // Return the created order
+        return res.status(201).json(order);
       } catch (error) {
         console.error("Error creating order:", error);
+        if (error.message.includes("products") || error.message.includes("amount")) {
+          return res.status(400).json({ message: error.message });
+        }
         return res.status(500).json({ message: "Internal server error" });
       }
+    }
 
     default:
-      // If method is not supported, return 405 (Method Not Allowed)
       return res.status(405).json({ message: "Method Not Allowed" });
   }
 }

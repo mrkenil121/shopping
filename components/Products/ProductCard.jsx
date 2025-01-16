@@ -52,7 +52,7 @@ const ProductCard = ({ product, onDelete }) => {
 
         {/* Delete Button */}
         <button
-          onClick={() => onDelete?.(id)}
+          // onClick={() => onDelete?.(id)}
           className="text-red-500 hover:underline"
           aria-label={`Delete ${name}`}
         >

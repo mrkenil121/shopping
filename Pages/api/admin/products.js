@@ -1,8 +1,26 @@
 import { PrismaClient } from '@prisma/client';
 import { validateProduct } from '@/utils/validators';
 import { adminMiddleware } from '@/middleware/adminMiddleware';
+const multer = require('multer');
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+import { IncomingForm } from 'formidable';
+import cloudinary from 'cloudinary';
+import fs from 'fs';
+
 
 const prisma = new PrismaClient();
+
+cloudinary.v2.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+export const config = {
+  api: {
+    bodyParser: false, // Disable the default body parser
+  },
+};
 
 export default adminMiddleware(async function handler(req, res) {
   try {
@@ -28,7 +46,7 @@ export default adminMiddleware(async function handler(req, res) {
 });
 
 async function handleGet(req, res) {
-  const { page = 1, pageSize = 10 } = req.query; // Destructuring from req.query, not req.query.page
+  const { page = 1, pageSize = 12 } = req.query;
   const skip = (Number(page) - 1) * Number(pageSize);
   const take = Number(pageSize);
 
@@ -38,6 +56,18 @@ async function handleGet(req, res) {
         skip,
         take,
         orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          name: true,
+          wsCode: true,
+          salesPrice: true,
+          mrp: true,
+          packageSize: true,
+          tags: true,
+          category: true,
+          images: true,
+          createdAt: true,
+        }
       }),
       prisma.product.count(),
     ]);
@@ -45,7 +75,7 @@ async function handleGet(req, res) {
     res.status(200).json({
       products,
       totalCount,
-      totalPages: Math.ceil(totalCount / pageSize),
+      totalPages: Math.ceil(totalCount / take),
     });
   } catch (error) {
     console.error('Error fetching products:', error);
@@ -53,38 +83,193 @@ async function handleGet(req, res) {
   }
 }
 
-
 async function handlePost(req, res) {
-  const { name, wsCode, salesPrice, mrp, packageSize, tags, category, images } = req.body;
+  try {
+    console.log("Starting file upload process");
+    
+    // Parse form data
+    const form = new IncomingForm({ 
+      multiples: true,
+      keepExtensions: true // Add this to keep file extensions
+    });
+    
+    const [fields, files] = await new Promise((resolve, reject) => {
+      form.parse(req, (err, fields, files) => {
+        if (err) {
+          console.error("Form parsing error:", err);
+          reject(err);
+        }
+        console.log("Parsed fields:", fields);
+        console.log("Parsed files:", files);
+        resolve([fields, files]);
+      });
+    });
 
-  // const validationError = validateProduct({ name, wsCode, salesPrice, mrp, packageSize, tags, category, images });
-  // if (validationError) return res.status(400).json({ message: validationError });
+    // Initialize uploadedImages array
+    const uploadedImages = [];
 
-  const newProduct = await prisma.product.create({
-    data: { name, wsCode, salesPrice, mrp, packageSize, tags, category, images },
-  });
+    // Handle image uploads with better error checking
+    if (files && files.images) {
+      const imageFiles = Array.isArray(files.images) ? files.images : [files.images];
+      console.log("Number of images to process:", imageFiles.length);
+      
+      // Upload each image to Cloudinary
+      for (const file of imageFiles) {
+        if (!file.filepath) {
+          console.error("No filepath found for file:", file);
+          continue;
+        }
 
-  res.status(201).json({ message: 'Product created successfully', product: newProduct });
+        try {
+          console.log("Uploading file:", file.filepath);
+          const result = await cloudinary.v2.uploader.upload(file.filepath, {
+            folder: 'product_images',
+            use_filename: true,
+            resource_type: 'auto'
+          });
+          console.log("Upload successful:", result.secure_url);
+          uploadedImages.push(result.secure_url);
+        } catch (uploadError) {
+          console.error("Cloudinary upload error for file:", file.filepath, uploadError);
+          throw new Error(`Failed to upload image to Cloudinary: ${uploadError.message}`);
+        }
+      }
+    } else {
+      console.log("No images found in request");
+    }
+
+    // Create new product with uploaded image URLs
+    const productData = {
+      name: fields.name[0],
+      wsCode: Number(fields.wsCode[0]),
+      salesPrice: Number(fields.salesPrice[0]),
+      mrp: Number(fields.mrp[0]),
+      packageSize: Number(fields.packageSize[0]),
+      tags: JSON.parse(fields.tags[0]),
+      category: fields.category[0],
+      images: uploadedImages,
+    };
+
+    console.log("Creating product with data:", productData);
+
+    const newProduct = await prisma.product.create({
+      data: productData
+    });
+
+    console.log("Product created successfully:", newProduct);
+
+    res.status(201).json({ 
+      message: 'Product created successfully', 
+      product: newProduct 
+    });
+
+  } catch (error) {
+    console.error("Detailed error in handlePost:", error);
+    res.status(500).json({ 
+      message: error.message || 'Error creating product',
+      error: process.env.NODE_ENV === 'development' ? error.toString() : undefined
+    });
+  }
 }
 
+const handleRemoveNewImage = (indexToRemove) => {
+  setEditingProduct(prev => ({
+    ...prev,
+    newImages: prev.newImages.filter((_, index) => index !== indexToRemove),
+    previewUrls: prev.previewUrls.filter((_, index) => index !== indexToRemove)
+  }));
+};
+
+// Backend API handler
 async function handlePut(req, res) {
-  const { id, ...data } = req.body;
+  try {
+    const form = new IncomingForm({ multiples: true });
+    
+    const [fields, files] = await new Promise((resolve, reject) => {
+      form.parse(req, (err, fields, files) => {
+        if (err) reject(err);
+        resolve([fields, files]);
+      });
+    });
 
-  console.log(req.body);
+    const id = Number(fields.id[0]);
+    if (!id) {
+      return res.status(400).json({ message: 'Product ID is required' });
+    }
 
+    // Get existing product to compare images
+    const existingProduct = await prisma.product.findUnique({
+      where: { id },
+      select: { images: true }
+    });
 
-  if (!id) return res.status(400).json({ message: 'Product ID is required' });
+    // Handle existing and new images
+    let updatedImages = JSON.parse(fields.existingImages[0] || '[]');
+    
+    // Upload new images if any
+    if (files.images) {
+      const imageFiles = Array.isArray(files.images) ? files.images : [files.images];
+      
+      for (const file of imageFiles) {
+        try {
+          const result = await cloudinary.v2.uploader.upload(file.filepath, {
+            folder: 'product_images',
+            use_filename: true,
+            resource_type: 'auto'
+          });
+          updatedImages.push(result.secure_url);
+        } catch (uploadError) {
+          console.error("Error uploading image:", uploadError);
+        }
+      }
+    }
 
-  // const validationError = validateProduct(data);
-  // if (validationError) return res.status(400).json({ message: validationError });
+    // Prepare update data
+    const updateData = {
+      name: fields.name[0],
+      wsCode: Number(fields.wsCode[0]),
+      salesPrice: Number(fields.salesPrice[0]),
+      mrp: Number(fields.mrp[0]),
+      packageSize: Number(fields.packageSize[0]),
+      tags: JSON.parse(fields.tags[0]),
+      category: fields.category[0],
+      images: updatedImages,
+    };
 
-  const updatedProduct = await prisma.product.update({
-    where: { id },
-    data,
-  });
+    // Update product in database
+    const updatedProduct = await prisma.product.update({
+      where: { id },
+      data: updateData,
+    });
 
-  res.status(200).json({ message: 'Product updated successfully', product: updatedProduct });
+    // Clean up old images from Cloudinary if needed
+    const removedImages = existingProduct.images.filter(
+      img => !updatedImages.includes(img)
+    );
+
+    for (const imgUrl of removedImages) {
+      try {
+        const publicId = imgUrl.split('/').pop().split('.')[0];
+        await cloudinary.v2.uploader.destroy(`product_images/${publicId}`);
+      } catch (error) {
+        console.error("Error deleting old image:", error);
+      }
+    }
+
+    res.status(200).json({ 
+      message: 'Product updated successfully', 
+      product: updatedProduct 
+    });
+
+  } catch (error) {
+    console.error("Update error:", error);
+    res.status(500).json({ 
+      message: 'Failed to update product',
+      error: process.env.NODE_ENV === 'development' ? error.toString() : undefined
+    });
+  }
 }
+
 
 async function handleDelete(req, res) {
   const { id } = req.query;

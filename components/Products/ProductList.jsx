@@ -1,5 +1,8 @@
+'use client'
+
 import React, { useState, useEffect } from "react";
 import ProductCard from "./ProductCard"; // Import ProductCard component
+import axios from "axios"; // Import Axios for API calls
 // import { fetchProducts, deleteProduct } from "../api"; // Custom API calls for fetching and deleting products
 
 const ProductList = () => {
@@ -10,8 +13,8 @@ const ProductList = () => {
     // Fetch products from the API when the component mounts
     const fetchAllProducts = async () => {
       try {
-        const response = await fetchProducts(); // Custom API call to fetch all products
-        setProducts(response.products); // Assuming the API returns products as an array
+        const response = await axios.get("/api/products");
+        setProducts(response.data.products); // Assuming the API returns products as an array
       } catch (error) {
         console.error("Error fetching products:", error);
       } finally {

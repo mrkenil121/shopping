@@ -1,127 +1,121 @@
-import { useState, useEffect } from "react";
-import { useRouter } from "next/router";
-import { 
-  getCartItems, 
-  removeFromCart, 
-  updateCartItemQuantity, 
-  clearCart 
-} from "@/utils/cartUtils"; // Import cart utility functions
+import React, { useEffect, useState } from "react";
+import axios from "axios";
 
 const Cart = () => {
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
+  const [error, setError] = useState(null);
+  const [totalPrice, setTotalPrice] = useState(0);
+  const [token, setToken] = useState(null);
 
+  // Set the token from localStorage once on component mount
   useEffect(() => {
-    // Fetch cart items from localStorage
-    const fetchCartItems = () => {
-      const items = getCartItems();
-      setCartItems(items);
+    const storedToken = localStorage.getItem("user"); // Fetch JWT token from local storage
+    if (!storedToken) {
+      setError("User not authenticated");
       setLoading(false);
-    };
-
-    fetchCartItems();
-  }, []);
-
-  // Handle removing an item from the cart
-  const handleRemoveItem = (productId) => {
-    removeFromCart(productId);
-    setCartItems(getCartItems());
-  };
-
-  // Handle updating the quantity of a cart item
-  const handleUpdateQuantity = (productId, quantity) => {
-    if (quantity < 1) {
-      handleRemoveItem(productId);
-    } else {
-      updateCartItemQuantity(productId, quantity);
-      setCartItems(getCartItems());
-    }
-  };
-
-  // Handle checkout action
-  const handleCheckout = () => {
-    if (cartItems.length === 0) {
-      alert("Your cart is empty. Please add items before proceeding to checkout.");
       return;
     }
-    router.push("/checkout"); // Redirect to checkout page
+    setToken(storedToken);
+  }, []);
+
+  // Fetch cart items once the token is available
+  useEffect(() => {
+    if (token) {
+      const fetchCartItems = async () => {
+        try {
+          const response = await axios.get("/api/cart", {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+          setCartItems(response.data.cartItems);
+          setTotalPrice(response.data.totalPrice);
+          setLoading(false);
+        } catch (err) {
+          setError("Failed to fetch cart items");
+          setLoading(false);
+        }
+      };
+
+      fetchCartItems();
+    }
+  }, [token]); // Run this effect whenever the token is available
+
+  // Handle cart item quantity update
+  const handleQuantityChange = async (cartItemId, quantity) => {
+    if (quantity < 1) return;
+
+    try {
+      const response = await axios.put(
+        `/api/cart/${cartItemId}`,
+        { quantity },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      setCartItems(response.data.cartItems);
+      setTotalPrice(response.data.totalPrice);
+    } catch (err) {
+      setError("Failed to update quantity");
+    }
   };
 
-  // Handle clearing the entire cart
-  const handleClearCart = () => {
-    clearCart();
-    setCartItems([]);
+  // Handle checkout process
+  const handleCheckout = async () => {
+    try {
+      await axios.post(
+        "/api/checkout",
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      alert("Checkout successful");
+      setCartItems([]); // Clear cart items after successful checkout
+      setTotalPrice(0);
+    } catch (err) {
+      setError("Checkout failed");
+    }
   };
 
-  if (loading) {
-    return <p>Loading cart...</p>;
-  }
-
-  if (cartItems.length === 0) {
-    return <p>Your cart is empty.</p>;
-  }
+  if (loading) return <p>Loading...</p>;
+  if (error) return <p>{error}</p>;
 
   return (
-    <div className="container mx-auto p-6">
-      <h1 className="text-3xl font-semibold mb-4">Shopping Cart</h1>
-      <div className="bg-white p-6 rounded shadow-md">
-        <table className="min-w-full table-auto">
-          <thead>
-            <tr>
-              <th className="px-4 py-2 border-b">Product</th>
-              <th className="px-4 py-2 border-b">Price</th>
-              <th className="px-4 py-2 border-b">Quantity</th>
-              <th className="px-4 py-2 border-b">Total</th>
-              <th className="px-4 py-2 border-b">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {cartItems.map((item) => (
-              <tr key={item.productId}>
-                <td className="px-4 py-2 border-b">{item.productName}</td>
-                <td className="px-4 py-2 border-b">${item.price}</td>
-                <td className="px-4 py-2 border-b">
-                  <input
-                    type="number"
-                    min="1"
-                    value={item.quantity}
-                    onChange={(e) =>
-                      handleUpdateQuantity(item.productId, parseInt(e.target.value, 10))
-                    }
-                    className="w-16 p-2 border rounded"
-                  />
-                </td>
-                <td className="px-4 py-2 border-b">
-                  ${(item.price * item.quantity).toFixed(2)}
-                </td>
-                <td className="px-4 py-2 border-b">
-                  <button
-                    onClick={() => handleRemoveItem(item.productId)}
-                    className="text-red-500 hover:underline"
-                  >
-                    Remove
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <div className="mt-4 flex justify-between">
-          <button
-            onClick={handleClearCart}
-            className="px-6 py-2 bg-red-600 text-white rounded"
-          >
-            Clear Cart
-          </button>
-          <button
-            onClick={handleCheckout}
-            className="px-6 py-2 bg-blue-600 text-white rounded"
-          >
+    <div className="cart-container">
+      <h1>Your Cart</h1>
+      {cartItems.length === 0 ? (
+        <p>Your cart is empty</p>
+      ) : (
+        <div>
+          {cartItems.map((item) => (
+            <div key={item.id} className="cart-item">
+              <p><strong>{item.product.name}</strong></p>
+              <p>Price: ${item.price}</p>
+              <div>
+                <label htmlFor={`quantity-${item.id}`}>Quantity:</label>
+                <input
+                  id={`quantity-${item.id}`}
+                  type="number"
+                  value={item.quantity}
+                  min="1"
+                  onChange={(e) => handleQuantityChange(item.id, parseInt(e.target.value))}
+                />
+              </div>
+              <p>Subtotal: ${item.quantity * item.price}</p>
+            </div>
+          ))}
+          <h2>Total: ${totalPrice}</h2>
+          <button onClick={handleCheckout} className="checkout-button">
             Proceed to Checkout
           </button>
         </div>
-      </div>
+      )}
     </div>
   );
 };

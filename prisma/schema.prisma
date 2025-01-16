@@ -15,7 +15,8 @@ model User {
   role      String   @default("customer") // 'admin' or 'customer'
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  orders    Order[]
+  orders    Order[]  // One-to-many relationship with orders
+  cart      Cart?    // One-to-one relationship with cart (optional)
 }
 
 model Product {
@@ -27,32 +28,54 @@ model Product {
   packageSize Int
   tags        String[]
   category    String
-  images      String[] // This will now store Cloudinary image URLs
+  images      String[] // This will store Cloudinary image URLs
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  orderItems  OrderItem[]
+  orderItems  OrderItem[] // One-to-many relationship with order items
+  cartItems   CartItem[]  // One-to-many relationship with cart items
 }
 
 model Order {
   id          Int      @id @default(autoincrement())
   userId      Int
-  user        User     @relation(fields: [userId], references: [id])
-  productIds  Int[]    // Can be removed if OrderItem handles this relationship.
-  items       OrderItem[]
   totalAmount Float
   status      String   @default("pending") // 'pending', 'confirmed'
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id]) // Link to the User model
+  orderItems  OrderItem[] // One-to-many relationship with order items
 }
 
 model OrderItem {
-  id        Int     @id @default(autoincrement()) // Changed to Int from String
+  id        Int     @id @default(autoincrement())
   orderId   Int
-  order     Order   @relation(fields: [orderId], references: [id])
+  order     Order   @relation(fields: [orderId], references: [id]) // Link to Order model
   productId Int
-  product   Product @relation(fields: [productId], references: [id])
+  product   Product @relation(fields: [productId], references: [id]) // Link to Product model
   quantity  Int
   price     Float
 
   @@unique([orderId, productId]) // Ensures no duplicate entries for the same product in one order
+}
+
+model Cart {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  cartItems CartItem[] // One-to-many relationship with cart items
+
+  user      User     @relation(fields: [userId], references: [id]) // One-to-one relationship with User
+}
+
+model CartItem {
+  id        Int     @id @default(autoincrement())
+  cartId    Int
+  cart      Cart    @relation(fields: [cartId], references: [id]) // Link to Cart model
+  productId Int
+  product   Product @relation(fields: [productId], references: [id]) // Link to Product model
+  quantity  Int
+  price     Float
+
+  @@unique([cartId, productId]) // Ensures no duplicate entries for the same product in one cart
 }
