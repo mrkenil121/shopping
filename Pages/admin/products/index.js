@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import Link from "next/link";
 import { useRouter } from "next/router";
+import "@/app/globals.css"
 
 const AdminProductsPage = () => {
   const [products, setProducts] = useState([]);
@@ -22,37 +23,27 @@ const AdminProductsPage = () => {
 
   const fetchProducts = async () => {
     setLoading(true);
-    
     try {
-
       const token = localStorage.getItem("user");
-      
       if (!token) {
-        router.push('/login');
+        router.push("/login");
         return;
       }
-  
+
       const response = await axios.get("/api/admin/products", {
         headers: { Authorization: `Bearer ${token}` },
       });
 
       if (response.status === 200) {
-        setProducts(response.data.products);  // Set products to state
+        setProducts(response.data.products);
       }
-      
     } catch (error) {
-      // Enhanced error logging
-      console.error("Error details:", {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status
-      });
+      console.error("Error fetching products:", error);
       setError("Failed to fetch products. Please try again.");
     } finally {
       setLoading(false);
     }
-};
-  
+  };
 
   const createProduct = async () => {
     try {
@@ -110,7 +101,7 @@ const AdminProductsPage = () => {
 
       if (response.status === 200) {
         setEditingProduct(null); // Clear edit state
-        await fetchProducts(); // Refresh product list
+        await fetchProducts();
       } else {
         setError("Failed to update product. Please try again.");
       }
@@ -143,6 +134,14 @@ const AdminProductsPage = () => {
     fetchProducts();
   }, []);
 
+  const handleChange = (field, value) => {
+    if (editingProduct) {
+      setEditingProduct({ ...editingProduct, [field]: value });
+    } else {
+      setNewProduct({ ...newProduct, [field]: value });
+    }
+  };
+
   return (
     <div className="container mx-auto p-6">
       <h1 className="text-3xl font-semibold mb-4">Admin Product Management</h1>
@@ -152,62 +151,113 @@ const AdminProductsPage = () => {
         <h2 className="text-xl font-semibold mb-4">
           {editingProduct ? "Edit Product" : "Create New Product"}
         </h2>
-        <div className="mb-4">
-          <label className="block mb-2">Name</label>
-          <input
-            type="text"
-            value={editingProduct ? editingProduct.name : newProduct.name}
-            onChange={(e) =>
-              editingProduct
-                ? setEditingProduct({ ...editingProduct, name: e.target.value })
-                : setNewProduct({ ...newProduct, name: e.target.value })
-            }
-            className="w-full p-2 border rounded"
-          />
-        </div>
-        <div className="mb-4">
-          <label className="block mb-2">Category</label>
-          <input
-            type="text"
-            value={
-              editingProduct ? editingProduct.category : newProduct.category
-            }
-            onChange={(e) =>
-              editingProduct
-                ? setEditingProduct({
-                    ...editingProduct,
-                    category: e.target.value,
-                  })
-                : setNewProduct({ ...newProduct, category: e.target.value })
-            }
-            className="w-full p-2 border rounded"
-          />
-        </div>
-        <div className="mb-4">
-          {editingProduct ? (
-            <button
-              onClick={editProduct}
-              className="px-4 py-2 bg-blue-600 text-white rounded"
-            >
-              Update Product
-            </button>
-          ) : (
-            <button
-              onClick={createProduct}
-              className="px-4 py-2 bg-blue-600 text-white rounded"
-            >
-              Create Product
-            </button>
-          )}
-          {editingProduct && (
-            <button
-              onClick={() => setEditingProduct(null)}
-              className="ml-4 px-4 py-2 bg-gray-600 text-white rounded"
-            >
-              Cancel
-            </button>
-          )}
-        </div>
+        <form>
+          <div className="mb-4">
+            <label className="block mb-2">Name</label>
+            <input
+              type="text"
+              value={editingProduct ? editingProduct.name : newProduct.name}
+              onChange={(e) => handleChange("name", e.target.value)}
+              className="w-full p-2 border rounded"
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block mb-2">WS Code</label>
+            <input
+              type="text"
+              value={editingProduct ? editingProduct.wsCode : newProduct.wsCode}
+              onChange={(e) => handleChange("wsCode", e.target.value)}
+              className="w-full p-2 border rounded"
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block mb-2">Sales Price</label>
+            <input
+              type="number"
+              value={
+                editingProduct ? editingProduct.salesPrice : newProduct.salesPrice
+              }
+              onChange={(e) => handleChange("salesPrice", e.target.value)}
+              className="w-full p-2 border rounded"
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block mb-2">MRP</label>
+            <input
+              type="number"
+              value={editingProduct ? editingProduct.mrp : newProduct.mrp}
+              onChange={(e) => handleChange("mrp", e.target.value)}
+              className="w-full p-2 border rounded"
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block mb-2">Package Size</label>
+            <input
+              type="number"
+              value={
+                editingProduct
+                  ? editingProduct.packageSize
+                  : newProduct.packageSize
+              }
+              onChange={(e) => handleChange("packageSize", e.target.value)}
+              className="w-full p-2 border rounded"
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block mb-2">Tags (comma-separated)</label>
+            <input
+              type="text"
+              value={editingProduct ? editingProduct.tags : newProduct.tags}
+              onChange={(e) => handleChange("tags", e.target.value)}
+              className="w-full p-2 border rounded"
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block mb-2">Category</label>
+            <input
+              type="text"
+              value={
+                editingProduct ? editingProduct.category : newProduct.category
+              }
+              onChange={(e) => handleChange("category", e.target.value)}
+              className="w-full p-2 border rounded"
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block mb-2">Images (comma-separated URLs)</label>
+            <input
+              type="text"
+              value={editingProduct ? editingProduct.images : newProduct.images}
+              onChange={(e) => handleChange("images", e.target.value)}
+              className="w-full p-2 border rounded"
+            />
+          </div>
+          <div className="mb-4">
+            {editingProduct ? (
+              <button
+                onClick={editProduct}
+                className="px-4 py-2 bg-blue-600 text-white rounded"
+              >
+                Update Product
+              </button>
+            ) : (
+              <button
+                onClick={createProduct}
+                className="px-4 py-2 bg-blue-600 text-white rounded"
+              >
+                Create Product
+              </button>
+            )}
+            {editingProduct && (
+              <button
+                onClick={() => setEditingProduct(null)}
+                className="ml-4 px-4 py-2 bg-gray-600 text-white rounded"
+              >
+                Cancel
+              </button>
+            )}
+          </div>
+        </form>
       </div>
 
       {loading ? (
