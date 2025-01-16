@@ -8,7 +8,7 @@ export const adminMiddleware = (handler) => async (req, res) => {
     // Extract the token from the Authorization header
     const token = req.headers.authorization?.replace("Bearer ", "");
 
-    console.log(token);
+    console.log("Token",token);
 
     if (!token) {
       return res.status(401).json({ message: "Unauthorized: Authentication token not found." });

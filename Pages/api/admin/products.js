@@ -57,8 +57,8 @@ async function handleGet(req, res) {
 async function handlePost(req, res) {
   const { name, wsCode, salesPrice, mrp, packageSize, tags, category, images } = req.body;
 
-  const validationError = validateProduct({ name, wsCode, salesPrice, mrp, packageSize, tags, category, images });
-  if (validationError) return res.status(400).json({ message: validationError });
+  // const validationError = validateProduct({ name, wsCode, salesPrice, mrp, packageSize, tags, category, images });
+  // if (validationError) return res.status(400).json({ message: validationError });
 
   const newProduct = await prisma.product.create({
     data: { name, wsCode, salesPrice, mrp, packageSize, tags, category, images },
@@ -70,10 +70,13 @@ async function handlePost(req, res) {
 async function handlePut(req, res) {
   const { id, ...data } = req.body;
 
+  console.log(req.body);
+
+
   if (!id) return res.status(400).json({ message: 'Product ID is required' });
 
-  const validationError = validateProduct(data);
-  if (validationError) return res.status(400).json({ message: validationError });
+  // const validationError = validateProduct(data);
+  // if (validationError) return res.status(400).json({ message: validationError });
 
   const updatedProduct = await prisma.product.update({
     where: { id },

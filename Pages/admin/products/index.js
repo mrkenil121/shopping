@@ -45,20 +45,31 @@ const AdminProductsPage = () => {
     }
   };
 
-  const createProduct = async () => {
+  const createProduct = async (e) => {
+    e.preventDefault();
     try {
       setLoading(true);
-
+  
       const token = localStorage.getItem("user");
       if (!token) {
         router.push("/login");
         return;
       }
-
-      const response = await axios.post("/api/admin/products", newProduct, {
+  
+      const payload = {
+        ...newProduct,
+        wsCode: Number(newProduct.wsCode),
+        salesPrice: Number(newProduct.salesPrice),
+        mrp: Number(newProduct.mrp),
+        packageSize: Number(newProduct.packageSize),
+        tags: newProduct.tags.split(",").map((tag) => tag.trim()),
+        images: newProduct.images.split(",").map((image) => image.trim()),
+      };
+  
+      const response = await axios.post("/api/admin/products", payload, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
+  
       if (response.status === 201) {
         setNewProduct({
           name: "",
@@ -80,25 +91,39 @@ const AdminProductsPage = () => {
       setLoading(false);
     }
   };
-
-  const editProduct = async () => {
+  
+  const editProduct = async (e) => {
+    e.preventDefault();
     try {
       setLoading(true);
-
+  
       const token = localStorage.getItem("user");
       if (!token) {
         router.push("/login");
         return;
       }
+  
+      const payload = {
+        id: editingProduct.id,  // Ensure id is included in the payload
+        name: editingProduct.name,
+        wsCode: Number(editingProduct.wsCode),
+        salesPrice: Number(editingProduct.salesPrice),
+        mrp: Number(editingProduct.mrp),
+        packageSize: Number(editingProduct.packageSize),
+        tags: Array.isArray(editingProduct.tags) ? editingProduct.tags : editingProduct.tags.split(",").map((tag) => tag.trim()),
+        category: editingProduct.category,
+        images: Array.isArray(editingProduct.images) ? editingProduct.images : editingProduct.images.split(",").map((image) => image.trim()),
+      };
+      
+      console.log("Payload being sent:", payload); // Check payload format
+      
+      const response = await axios.put("/api/admin/products", payload, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      
 
-      const response = await axios.put(
-        "/api/admin/products",
-        { id: editingProduct.id, ...editingProduct },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
+      console.log("response",response);
+  
       if (response.status === 200) {
         setEditingProduct(null); // Clear edit state
         await fetchProducts();
@@ -111,6 +136,8 @@ const AdminProductsPage = () => {
       setLoading(false);
     }
   };
+  
+  
 
   const deleteProduct = async (id) => {
     try {
@@ -164,7 +191,7 @@ const AdminProductsPage = () => {
           <div className="mb-4">
             <label className="block mb-2">WS Code</label>
             <input
-              type="text"
+              type="number"
               value={editingProduct ? editingProduct.wsCode : newProduct.wsCode}
               onChange={(e) => handleChange("wsCode", e.target.value)}
               className="w-full p-2 border rounded"
