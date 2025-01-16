@@ -27,13 +27,16 @@ const LoginPage = () => {
         // Decode the JWT token to get user info (including role)
         const decodedToken = jwtDecode(data.token);
 
-        // Store user data in localStorage after successful login
-        localStorage.setItem('user', JSON.stringify({
-          id: decodedToken.id,
-          email: decodedToken.email,
-          name: decodedToken.name,
-          role: decodedToken.role, // Store role in localStorage
-        }));
+      const userData = {
+        id: decodedToken.id,
+        email: decodedToken.email,
+        name: decodedToken.name,
+        role: decodedToken.role,
+        decodedToken,
+      };
+
+      localStorage.setItem('user', JSON.stringify(data.token)); // Store the user data in localStorage
+      // setUser(userData); // Update user state
 
         // Redirect to profile or dashboard after successful login
         router.push('/');

@@ -2,6 +2,8 @@
 
 import { useState, useEffect, createContext, useContext } from 'react';
 import { useRouter } from 'next/compat/router';
+import { jwtDecode } from 'jwt-decode';
+
 
 const AuthContext = createContext({ user: null, loading: false, login: () => {}, logout: () => {} });
 
@@ -15,7 +17,17 @@ export const AuthProvider = ({ children }) => {
       const userData = localStorage.getItem('user'); // Retrieve user info from localStorage
 
       if (userData) {
-        setUser(JSON.parse(userData)); // If data exists, set the user state
+        const data = JSON.parse(userData)
+
+        const decodedToken = jwtDecode(userData);
+
+        setUser({
+          id: decodedToken.id,
+          email: decodedToken.email,
+          name: decodedToken.name,
+          role: decodedToken.role,
+          userData,
+        });
       } else {
         setUser(null); // No user data found in localStorage
       }

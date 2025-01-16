@@ -28,30 +28,37 @@ export default adminMiddleware(async function handler(req, res) {
 });
 
 async function handleGet(req, res) {
-  const { page = 1, pageSize = 10 } = req.query;
+  const { page = 1, pageSize = 10 } = req.query; // Destructuring from req.query, not req.query.page
   const skip = (Number(page) - 1) * Number(pageSize);
   const take = Number(pageSize);
 
-  const [products, totalCount] = await Promise.all([
-    prisma.product.findMany({ skip, take, orderBy: { createdAt: 'desc' } }),
-    prisma.product.count(),
-  ]);
+  try {
+    const [products, totalCount] = await Promise.all([
+      prisma.product.findMany({
+        skip,
+        take,
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.product.count(),
+    ]);
 
-  res.status(200).json({
-    products,
-    totalCount,
-    totalPages: Math.ceil(totalCount / pageSize),
-  });
+    res.status(200).json({
+      products,
+      totalCount,
+      totalPages: Math.ceil(totalCount / pageSize),
+    });
+  } catch (error) {
+    console.error('Error fetching products:', error);
+    res.status(500).json({ message: 'Failed to fetch products. Please try again.' });
+  }
 }
 
-async function handlePost(req, res) {
 
+async function handlePost(req, res) {
   const { name, wsCode, salesPrice, mrp, packageSize, tags, category, images } = req.body;
 
   const validationError = validateProduct({ name, wsCode, salesPrice, mrp, packageSize, tags, category, images });
-  
   if (validationError) return res.status(400).json({ message: validationError });
-
 
   const newProduct = await prisma.product.create({
     data: { name, wsCode, salesPrice, mrp, packageSize, tags, category, images },

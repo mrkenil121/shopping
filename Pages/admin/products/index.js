@@ -2,47 +2,6 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import '@/app/globals.css';
-
-export function validateProduct(product) {
-  const { name, wsCode, salesPrice, mrp, packageSize, tags, category, images } = product;
-
-  // Check if all required fields are present
-  if (!name || typeof name !== 'string' || name.trim() === '') {
-    return 'Product name is required and must be a non-empty string.';
-  }
-
-  if (!wsCode || typeof wsCode !== 'string' || wsCode.trim() === '') {
-    return 'Product wsCode is required and must be a non-empty string.';
-  }
-
-  if (isNaN(salesPrice) || !isFinite(salesPrice) || salesPrice <= 0) {
-    return 'Sales price must be a positive number.';
-  }
-
-  if (isNaN(mrp) || !isFinite(mrp) || mrp <= 0) {
-    return 'MRP must be a positive number.';
-  }
-
-  if (isNaN(packageSize) || !isFinite(packageSize) || packageSize <= 0) {
-    return 'Package size must be a positive number.';
-  }
-
-  if (!Array.isArray(tags) || tags.some(tag => typeof tag !== 'string' || tag.trim() === '')) {
-    return 'At least one non-empty tag is required.';
-  }
-
-  if (!category || typeof category !== 'string' || category.trim() === '') {
-    return 'Category is required and must be a non-empty string.';
-  }
-
-  if (!Array.isArray(images) || images.length === 0 || images.some(image => typeof image !== 'string' || image.trim() === '')) {
-    return 'At least one non-empty image URL is required.';
-  }
-
-  // If all validations pass, return null (no errors)
-  return null;
-}
 
 const AdminProductsPage = () => {
   const [products, setProducts] = useState([]);
@@ -63,50 +22,44 @@ const AdminProductsPage = () => {
 
   const fetchProducts = async () => {
     setLoading(true);
-
+    
     try {
-      const token = localStorage.getItem("user");
 
+      const token = localStorage.getItem("user");
+      console.log("Token:", token); // Debug token
+      
       if (!token) {
-        router.push("/login");
+        router.push('/login');
         return;
       }
 
+      // Log the full request configuration
+      console.log("Request config:", {
+        url: "/api/admin/products",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+  
       const response = await axios.get("/api/admin/products", {
         headers: { Authorization: `Bearer ${token}` },
       });
 
       if (response.status === 200) {
-        setProducts(response.data.products);
-      } else {
-        setError("Failed to fetch products. Please try again.");
+        setProducts(response.data.products);  // Set products to state
       }
+      
     } catch (error) {
+      // Enhanced error logging
+      console.error("Error details:", {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
       setError("Failed to fetch products. Please try again.");
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleFormSubmit = async () => {
-    const productToValidate = editingProduct || newProduct;
-    const validationError = validateProduct({
-      ...productToValidate,
-      tags: productToValidate.tags.split(","),
-      images: productToValidate.images.split(","),
-    });
-
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
-
-    if (editingProduct) {
-      await editProduct();
-    } else {
-      await createProduct();
-    }
-  };
+};
+  
 
   const createProduct = async () => {
     try {
@@ -118,11 +71,7 @@ const AdminProductsPage = () => {
         return;
       }
 
-      const response = await axios.post("/api/admin/products", {
-        ...newProduct,
-        tags: newProduct.tags.split(","),
-        images: newProduct.images.split(","),
-      }, {
+      const response = await axios.post("/api/admin/products", newProduct, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -160,12 +109,7 @@ const AdminProductsPage = () => {
 
       const response = await axios.put(
         "/api/admin/products",
-        {
-          id: editingProduct.id,
-          ...editingProduct,
-          tags: editingProduct.tags.split(","),
-          images: editingProduct.images.split(","),
-        },
+        { id: editingProduct.id, ...editingProduct },
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -232,154 +176,84 @@ const AdminProductsPage = () => {
           <label className="block mb-2">Category</label>
           <input
             type="text"
-            value={editingProduct ? editingProduct.category : newProduct.category}
+            value={
+              editingProduct ? editingProduct.category : newProduct.category
+            }
             onChange={(e) =>
               editingProduct
-                ? setEditingProduct({ ...editingProduct, category: e.target.value })
+                ? setEditingProduct({
+                    ...editingProduct,
+                    category: e.target.value,
+                  })
                 : setNewProduct({ ...newProduct, category: e.target.value })
             }
             className="w-full p-2 border rounded"
           />
         </div>
         <div className="mb-4">
-          <label className="block mb-2">Tags (comma-separated)</label>
-          <input
-            type="text"
-            value={editingProduct ? editingProduct.tags : newProduct.tags}
-            onChange={(e) =>
-              editingProduct
-                ? setEditingProduct({ ...editingProduct, tags: e.target.value })
-                : setNewProduct({ ...newProduct, tags: e.target.value })
-            }
-            className="w-full p-2 border rounded"
-          />
+          {editingProduct ? (
+            <button
+              onClick={editProduct}
+              className="px-4 py-2 bg-blue-600 text-white rounded"
+            >
+              Update Product
+            </button>
+          ) : (
+            <button
+              onClick={createProduct}
+              className="px-4 py-2 bg-blue-600 text-white rounded"
+            >
+              Create Product
+            </button>
+          )}
+          {editingProduct && (
+            <button
+              onClick={() => setEditingProduct(null)}
+              className="ml-4 px-4 py-2 bg-gray-600 text-white rounded"
+            >
+              Cancel
+            </button>
+          )}
         </div>
-        <div className="mb-4">
-          <label className="block mb-2">Images (comma-separated URLs)</label>
-          <input
-            type="text"
-            value={editingProduct ? editingProduct.images : newProduct.images}
-            onChange={(e) =>
-              editingProduct
-                ? setEditingProduct({ ...editingProduct, images: e.target.value })
-                : setNewProduct({ ...newProduct, images: e.target.value })
-            }
-            className="w-full p-2 border rounded"
-          />
-        </div>
-        <div className="mb-4">
-          <label className="block mb-2">WS Code</label>
-          <input
-            type="text"
-            value={editingProduct ? editingProduct.wsCode : newProduct.wsCode}
-            onChange={(e) =>
-              editingProduct
-                ? setEditingProduct({ ...editingProduct, wsCode: e.target.value })
-                : setNewProduct({ ...newProduct, wsCode: e.target.value })
-            }
-            className="w-full p-2 border rounded"
-          />
-        </div>
-        <div className="mb-4">
-          <label className="block mb-2">Sales Price</label>
-          <input
-            type="number"
-            value={editingProduct ? editingProduct.salesPrice : newProduct.salesPrice}
-            onChange={(e) =>
-              editingProduct
-                ? setEditingProduct({ ...editingProduct, salesPrice: e.target.value })
-                : setNewProduct({ ...newProduct, salesPrice: e.target.value })
-            }
-
-            className="w-full p-2 border rounded"
-          />
-        </div>
-        <div className="mb-4">
-          <label className="block mb-2">MRP</label>
-          <input
-            type="number"
-            value={editingProduct ? editingProduct.mrp : newProduct.mrp}
-            onChange={(e) =>
-              editingProduct
-                ? setEditingProduct({ ...editingProduct, mrp: e.target.value })
-                : setNewProduct({ ...newProduct, mrp: e.target.value })
-            }
-            className="w-full p-2 border rounded"
-          />
-        </div>
-        <div className="mb-4">
-          <label className="block mb-2">Package Size</label>
-          <input
-            type="number"
-            value={editingProduct ? editingProduct.packageSize : newProduct.packageSize}
-            onChange={(e) =>
-              editingProduct
-                ? setEditingProduct({ ...editingProduct, packageSize: e.target.value })
-                : setNewProduct({ ...newProduct, packageSize: e.target.value })
-            }
-            className="w-full p-2 border rounded"
-          />
-        </div>
-        <button
-          onClick={handleFormSubmit}
-          className="bg-blue-500 text-white p-2 rounded"
-        >
-          {editingProduct ? "Update Product" : "Create Product"}
-        </button>
       </div>
 
-      <h2 className="text-xl font-semibold mb-4">Products</h2>
-
       {loading ? (
-        <p>Loading...</p>
+        <p>Loading products...</p>
       ) : (
-        <table className="w-full">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Category</th>
-              <th>Tags</th>
-              <th>Images</th>
-              <th>WS Code</th>
-              <th>Sales Price</th>
-              <th>MRP</th>
-              <th>Package Size</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {products.map((product) => (
-              <tr key={product.id}>
-                <td>{product.name}</td>
-                <td>{product.category}</td>
-                <td>{product.tags.join(", ")}</td>
-                <td>{product.images.join(", ")}</td>
-                <td>{product.wsCode}</td>
-                <td>{product.salesPrice}</td>
-                <td>{product.mrp}</td>
-                <td>{product.packageSize}</td>
-                <td>
-                  <button
-                    onClick={() => setEditingProduct(product)}
-                    className="bg-blue-500 text-white p-2 rounded"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => deleteProduct(product.id)}
-                    className="bg-red-500 text-white p-2 rounded"
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {products.map((product) => (
+            <div
+              key={product.id}
+              className="bg-white shadow rounded p-4 flex flex-col items-center"
+            >
+              <Link href={`/products/${product.id}`}>
+                <img
+                  src={product.images || "/default-image.jpg"}
+                  alt={product.name}
+                  className="w-full h-48 object-cover mb-4"
+                />
+                <h2 className="text-lg font-semibold">{product.name}</h2>
+                <p className="text-gray-600">${product.salesPrice}</p>
+              </Link>
+
+              <button
+                onClick={() => setEditingProduct(product)}
+                className="mt-2 px-4 py-2 bg-yellow-600 text-white rounded"
+              >
+                Edit
+              </button>
+              <button
+                onClick={() => deleteProduct(product.id)}
+                className="mt-2 px-4 py-2 bg-red-600 text-white rounded"
+              >
+                Delete
+              </button>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );
-}
+};
 
 export default AdminProductsPage;
-           
