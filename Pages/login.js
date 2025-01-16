@@ -35,7 +35,7 @@ const LoginPage = () => {
         decodedToken,
       };
 
-      localStorage.setItem('user', JSON.stringify(data.token)); // Store the user data in localStorage
+      localStorage.setItem('user', data.token); // Store the user data in localStorage
       // setUser(userData); // Update user state
 
         // Redirect to profile or dashboard after successful login

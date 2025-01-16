@@ -1,5 +1,7 @@
 import jwt from 'jsonwebtoken';
 import { prisma } from '@/prisma';
+import dotenv from 'dotenv';
+dotenv.config();
 
 export const adminMiddleware = (handler) => async (req, res) => {
   try {
@@ -9,7 +11,7 @@ export const adminMiddleware = (handler) => async (req, res) => {
     if (!token) {
       return res.status(401).json({ message: "Unauthorized: Authentication token not found." });
     }
-
+    
     // Verify the token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 

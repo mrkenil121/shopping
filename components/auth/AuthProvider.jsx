@@ -17,7 +17,6 @@ export const AuthProvider = ({ children }) => {
       const userData = localStorage.getItem('user'); // Retrieve user info from localStorage
 
       if (userData) {
-        const data = JSON.parse(userData)
 
         const decodedToken = jwtDecode(userData);
 

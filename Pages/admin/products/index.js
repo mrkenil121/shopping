@@ -26,18 +26,11 @@ const AdminProductsPage = () => {
     try {
 
       const token = localStorage.getItem("user");
-      console.log("Token:", token); // Debug token
       
       if (!token) {
         router.push('/login');
         return;
       }
-
-      // Log the full request configuration
-      console.log("Request config:", {
-        url: "/api/admin/products",
-        headers: { Authorization: `Bearer ${token}` }
-      });
   
       const response = await axios.get("/api/admin/products", {
         headers: { Authorization: `Bearer ${token}` },
