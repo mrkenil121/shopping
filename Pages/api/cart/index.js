@@ -1,105 +1,243 @@
-import jwt from 'jsonwebtoken';
-import { prisma } from "@/prisma"; // Assuming Prisma is used for database operations
+import { PrismaClient } from "@prisma/client";
+import jwt from "jsonwebtoken";
+import dotenv from "dotenv";
+dotenv.config();
+
+const prisma = new PrismaClient();
 
 export default async function handler(req, res) {
-  const token = req.headers.authorization?.replace("Bearer ", "");// Extract token after "Bearer"
-  
+  const token = req.headers.authorization?.replace("Bearer ", "");
 
   if (!token) {
-    return res.status(401).json({ message: "Unauthorized" });
+    return res.status(401).json({ message: "Token not provided" });
   }
 
   try {
-    // Verify the JWT token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET); // Use your JWT secret here
-    const userId = decoded.id; // Assuming the JWT contains userId as a payload
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    if (req.method === "GET") {
-      const cart = await prisma.cart.findUnique({
-        where: { userId },
-        include: {
+    if (!decoded || !decoded.id) {
+      return res.status(401).json({ message: "Invalid token" });
+    }
+
+    const userId = decoded.id;
+
+
+    switch (req.method) {
+      case "GET":
+        const cartInclude = {
           cartItems: {
             include: {
-              product: true, // Assuming product details are needed
+              product: {
+                select: {
+                  id: true,
+                  name: true,
+                  images: true,
+                  salesPrice: true,
+                },
+              },
             },
           },
-        },
-      });
+        };
 
-      if (!cart) {
-        // Automatically create an empty cart if one doesn't exist for the user
-        const newCart = await prisma.cart.create({
-          data: {
-            userId,
-            cartItems: { create: [] },
-          },
-          include: { cartItems: true },
+        let cart = await prisma.cart.findUnique({
+          where: { userId: userId },
+          include: cartInclude,
         });
 
-        return res.status(200).json({ cartItems: newCart.cartItems, totalPrice: 0 });
-      }
+        if (!cart) {
+          cart = await prisma.cart.create({
+            data: { userId },
+            include: cartInclude,
+          });
+        }
 
-      const totalPrice = cart.cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
+        const totalPrice = cart.cartItems.reduce(
+          (sum, item) => sum + item.product.salesPrice * item.quantity,
+          0
+        );
 
-      return res.status(200).json({ cartItems: cart.cartItems, totalPrice });
-    } else if (req.method === "PUT") {
-      const { id, quantity } = req.body;
+        return res.status(200).json({
+          cartItems: cart.cartItems.map((item) => ({
+            id: item.id,
+            cartId: item.cartId,
+            productId: item.product.id,
+            quantity: item.quantity,
+            price: item.product.salesPrice,
+            product: {
+              id: item.product.id,
+              name: item.product.name,
+              images: item.product.images,
+            },
+          })),
+          totalPrice,
+        });
 
-      if (!id || !quantity) {
-        return res.status(400).json({ message: "Invalid input" });
-      }
+      case "POST":
+        const { productId, quantity } = req.body;
 
-      const cartItem = await prisma.cartItem.update({
-        where: { id },
-        data: { quantity },
-      });
+        // Input validation
+        if (!productId || typeof productId !== 'number') {
+          return res.status(400).json({ message: "Valid product ID is required" });
+        }
 
-      const cart = await prisma.cart.findUnique({
-        where: { userId },
-        include: {
-          cartItems: true,
-        },
-      });
+        // Find or create user's cart
+        let userCart = await prisma.cart.findUnique({
+          where: { userId },
+        });
 
-      const totalPrice = cart.cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
+        if (!userCart) {
+          userCart = await prisma.cart.create({
+            data: { userId },
+          });
+        }
 
-      return res.status(200).json({ cartItems: cart.cartItems, totalPrice });
-    } else if (req.method === "POST") {
-      const cart = await prisma.cart.findUnique({
-        where: { userId },
-        include: { cartItems: true },
-      });
-
-      if (!cart || cart.cartItems.length === 0) {
-        return res.status(400).json({ message: "Cart is empty" });
-      }
-
-      const order = await prisma.order.create({
-        data: {
-          userId,
-          total: cart.cartItems.reduce((total, item) => total + item.price * item.quantity, 0),
-          orderItems: {
-            create: cart.cartItems.map((item) => ({
-              productId: item.productId,
-              quantity: item.quantity,
-              price: item.price,
-            })),
+        // Check if item exists in cart
+        const existingCartItem = await prisma.cartItem.findFirst({
+          where: {
+            cartId: userCart.id,
+            productId,
           },
-        },
-      });
+        });
 
-      await prisma.cartItem.deleteMany({ where: { cartId: cart.id } });
+        // If quantity is 0, remove item from cart
+        if (quantity === 0 && existingCartItem) {
+          await prisma.cartItem.delete({
+            where: {
+              id: existingCartItem.id,
+            },
+          });
 
-      return res.status(200).json({ message: "Checkout successful", order });
-    } else {
-      res.setHeader("Allow", ["GET", "PUT", "POST"]);
-      return res.status(405).json({ message: `Method ${req.method} not allowed` });
+          const cartInclude = {
+            cartItems: {
+              include: {
+                product: {
+                  select: {
+                    id: true,
+                    name: true,
+                    images: true,
+                    salesPrice: true,
+                  },
+                },
+              },
+            },
+          };
+
+          // Return updated cart items
+          const updatedCart = await prisma.cart.findUnique({
+            where: { userId },
+            include: cartInclude,
+          });
+
+          return res.status(200).json({
+            cartItems: updatedCart.cartItems,
+            totalPrice: updatedCart.cartItems.reduce(
+              (sum, item) => sum + item.product.salesPrice * item.quantity,
+              0
+            ),
+          });
+        }
+
+        // If item exists, update quantity by +1 or -1
+        if (existingCartItem) {
+          const newQuantity = quantity > existingCartItem.quantity 
+            ? existingCartItem.quantity + 1  // Only increment by 1
+            : existingCartItem.quantity - 1;  // Only decrement by 1
+
+          if (newQuantity < 1) {
+            // Remove item if quantity would be less than 1
+            await prisma.cartItem.delete({
+              where: {
+                id: existingCartItem.id,
+              },
+            });
+          } else {
+            // Update quantity
+            await prisma.cartItem.update({
+              where: {
+                id: existingCartItem.id,
+              },
+              data: {
+                quantity: newQuantity,
+              },
+            });
+          }
+
+          const cartInclude = {
+            cartItems: {
+              include: {
+                product: {
+                  select: {
+                    id: true,
+                    name: true,
+                    images: true,
+                    salesPrice: true,
+                  },
+                },
+              },
+            },
+          };
+
+          // Return updated cart items
+          const updatedCart = await prisma.cart.findUnique({
+            where: { userId },
+            include: cartInclude,
+          });
+
+          return res.status(200).json({
+            cartItems: updatedCart.cartItems,
+            totalPrice: updatedCart.cartItems.reduce(
+              (sum, item) => sum + item.product.salesPrice * item.quantity,
+              0
+            ),
+          });
+        }
+
+        // If item doesn't exist, check product and add to cart with quantity 1
+        const product = await prisma.product.findUnique({
+          where: { id: productId },
+          select: {
+            id: true,
+            salesPrice: true,
+          },
+        });
+
+        if (!product) {
+          return res.status(404).json({ message: "Product not found" });
+        }
+
+        // Create new cart item with quantity 1
+        const cartItem = await prisma.cartItem.create({
+          data: {
+            cartId: userCart.id,
+            productId,
+            price: product.salesPrice,
+            quantity: 1,  // Always start with quantity 1 for new items
+          },
+        });
+
+        // Return updated cart items
+        const newCart = await prisma.cart.findUnique({
+          where: { userId },
+          include: cartInclude,
+        });
+
+        return res.status(201).json({
+          cartItems: newCart.cartItems,
+          totalPrice: newCart.cartItems.reduce(
+            (sum, item) => sum + item.product.salesPrice * item.quantity,
+            0
+          ),
+        });
+
+      default:
+        res.setHeader("Allow", ["GET", "POST"]);
+        return res.status(405).json({ message: `Method ${req.method} Not Allowed` });
     }
   } catch (error) {
-    if (error.name === "JsonWebTokenError" || error.name === "TokenExpiredError") {
-      return res.status(401).json({ message: "Invalid or expired token" });
+    console.error("Cart API Error:", error);
+    if (error.name === "JsonWebTokenError") {
+      return res.status(401).json({ message: "Invalid token" });
     }
-    console.error(error);
-    return res.status(500).json({ message: "Internal Server Error" });
+    return res.status(500).json({ message: "Internal server error" });
   }
 }

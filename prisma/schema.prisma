@@ -58,24 +58,23 @@ model OrderItem {
   @@unique([orderId, productId]) // Ensures no duplicate entries for the same product in one order
 }
 
-model Cart {
-  id        Int      @id @default(autoincrement())
-  userId    Int      @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  cartItems CartItem[] // One-to-many relationship with cart items
-
-  user      User     @relation(fields: [userId], references: [id]) // One-to-one relationship with User
-}
-
 model CartItem {
   id        Int     @id @default(autoincrement())
   cartId    Int
-  cart      Cart    @relation(fields: [cartId], references: [id]) // Link to Cart model
+  cart      Cart    @relation(fields: [cartId], references: [id])
   productId Int
-  product   Product @relation(fields: [productId], references: [id]) // Link to Product model
-  quantity  Int
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int     @default(1)
   price     Float
 
-  @@unique([cartId, productId]) // Ensures no duplicate entries for the same product in one cart
+  @@unique([cartId, productId])
+}
+
+model Cart {
+  id        Int        @id @default(autoincrement())
+  userId    Int        @unique
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  cartItems CartItem[]
+  user      User       @relation(fields: [userId], references: [id])
 }

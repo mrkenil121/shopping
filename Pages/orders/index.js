@@ -1,171 +1,159 @@
-import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/router";
-import { format } from "date-fns";
-import Link from "next/link";
-import { jwtDecode } from "jwt-decode";
+import React, { useState, useEffect } from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Package, Clock, CheckCircle } from "lucide-react";
 
-// Utility function to fetch orders from the API
-const fetchOrders = async (token) => {
-  try {
-    const res = await fetch('/api/orders', {  // Changed from /api/orders/${id}
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    
-    if (!res.ok) {
-      const errorData = await res.json();
-      throw new Error(errorData.message || "Failed to fetch orders");
-    }
-    
-    const data = await res.json();
-    return data || [];
-  } catch (error) {
-    console.error("Error fetching orders:", error);
-    throw error;
-  }
-};
-
-// Function to decode and validate JWT token
-const getUserFromToken = () => {
-  try {
-    const token = localStorage.getItem("user");
-    if (!token) return { user: null, token: null };
-    
-    const decoded = jwtDecode(token);
-    
-    // Validate token expiration
-    if (decoded.exp && decoded.exp * 1000 < Date.now()) {
-      localStorage.removeItem("user");
-      return { user: null, token: null };
-    }
-    
-    // Validate required fields
-    if (!decoded.id || !decoded.role) {
-      localStorage.removeItem("user");
-      return { user: null, token: null };
-    }
-    
-    return { user: decoded, token };
-  } catch (error) {
-    localStorage.removeItem("user");
-    console.error("Error decoding JWT:", error);
-    return { user: null, token: null };
-  }
-};
-
-const Orders = () => {
-  const [orders, setOrders] = useState([]);
+const OrdersPage = () => {
+  const [orders, setOrders] = useState({
+    pending: [],
+    confirmed: []
+  });
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const router = useRouter();
+  const [error, setError] = useState(null);
 
-  // Memoize fetchData to prevent unnecessary recreations
-  const fetchData = useCallback(async () => {
-    const { user, token } = getUserFromToken();
-
-    if (!user || !token) {
-      router.push("/login");
-      return;
-    }
-
-    try {
-      const fetchedOrders = await fetchOrders(token);
-      setOrders(fetchedOrders);
-    } catch (err) {
-      setError(err.message || "Unable to fetch orders. Please try again later.");
-    } finally {
-      setLoading(false);
-    }
-  }, [router]);
-
+  // Fetch orders from the API
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    const fetchOrders = async () => {
+      try {
+        // Replace with your actual API endpoint
+        const response = await fetch('/api/orders');
+        const data = await response.json();
+        
+        // Split orders into pending and confirmed
+        const categorizedOrders = data.reduce((acc, order) => {
+          if (order.status === 'pending') {
+            acc.pending.push(order);
+          } else if (order.status === 'confirmed') {
+            acc.confirmed.push(order);
+          }
+          return acc;
+        }, { pending: [], confirmed: [] });
 
-  // Status color mapping
-  const getStatusColor = (status) => {
-    const statusColors = {
-      confirmed: "text-green-500",
-      pending: "text-yellow-500",
-      shipped: "text-blue-500",
-      delivered: "text-green-600",
-      cancelled: "text-red-500"
+        setOrders(categorizedOrders);
+        setLoading(false);
+      } catch (err) {
+        setError('Failed to fetch orders');
+        setLoading(false);
+      }
     };
-    return statusColors[status] || "text-gray-500";
-  };
+
+    fetchOrders();
+  }, []);
+
+  const OrderCard = ({ order }) => (
+    <Card className="mb-4">
+      <CardHeader>
+        <div className="flex justify-between items-center">
+          <div>
+            <CardTitle className="text-lg">Order #{order.id}</CardTitle>
+            <CardDescription>
+              {new Date(order.createdAt).toLocaleDateString()}
+            </CardDescription>
+          </div>
+          <div className="flex items-center gap-2">
+            {order.status === 'pending' ? (
+              <Clock className="text-yellow-500" size={20} />
+            ) : (
+              <CheckCircle className="text-green-500" size={20} />
+            )}
+            <span className={`capitalize font-medium ${
+              order.status === 'pending' ? 'text-yellow-500' : 'text-green-500'
+            }`}>
+              {order.status}
+            </span>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <Package size={20} />
+              <span>{order.orderItems.length} items</span>
+            </div>
+            <div className="font-semibold">
+              Total: ₹{order.totalAmount.toFixed(2)}
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            {order.orderItems.map((item) => (
+              <div key={item.id} className="flex justify-between items-center border-b pb-2">
+                <div>
+                  <div className="font-medium">{item.product.name}</div>
+                  <div className="text-sm text-gray-500">
+                    Qty: {item.quantity} × ₹{item.price.toFixed(2)}
+                  </div>
+                </div>
+                <div className="font-medium">
+                  ₹{(item.quantity * item.price).toFixed(2)}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-[200px]">
-        <p className="text-gray-600">Loading orders...</p>
+      <div className="flex justify-center items-center h-96">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="p-4 bg-red-50 rounded-md">
-        <p className="text-red-500">{error}</p>
-      </div>
-    );
-  }
-
-  if (orders.length === 0) {
-    return (
-      <div className="p-6 text-center bg-gray-50 rounded-md">
-        <p className="text-gray-600">You haven't placed any orders yet.</p>
+      <div className="flex justify-center items-center h-96">
+        <div className="text-red-500">{error}</div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-6">
-      <h1 className="text-3xl font-semibold mb-6">Your Orders</h1>
-      <div className="bg-white p-6 rounded-lg shadow-md">
-        <div className="overflow-x-auto">
-          <table className="min-w-full table-auto">
-            <thead>
-              <tr>
-                <th className="px-4 py-2 border-b text-left">Order ID</th>
-                <th className="px-4 py-2 border-b text-left">Date</th>
-                <th className="px-4 py-2 border-b text-left">Total Amount</th>
-                <th className="px-4 py-2 border-b text-left">Status</th>
-                <th className="px-4 py-2 border-b text-left">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {orders.map((order) => (
-                <tr key={order.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-2 border-b">{order.id}</td>
-                  <td className="px-4 py-2 border-b">
-                    {format(new Date(order.createdAt), "MMMM dd, yyyy")}
-                  </td>
-                  <td className="px-4 py-2 border-b">
-                    ${order.totalAmount.toFixed(2)}
-                  </td>
-                  <td className="px-4 py-2 border-b">
-                    <span className={getStatusColor(order.status)}>
-                      {order.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-2 border-b">
-                    <Link
-                      href={`/orders/${order.id}`}
-                      className="text-blue-500 hover:underline"
-                    >
-                      View Details
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-3xl font-bold mb-8">My Orders</h1>
+      
+      <Tabs defaultValue="pending" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 mb-8">
+          <TabsTrigger value="pending" className="flex items-center gap-2">
+            <Clock size={16} />
+            Pending ({orders.pending.length})
+          </TabsTrigger>
+          <TabsTrigger value="confirmed" className="flex items-center gap-2">
+            <CheckCircle size={16} />
+            Confirmed ({orders.confirmed.length})
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="pending">
+          {orders.pending.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              No pending orders
+            </div>
+          ) : (
+            orders.pending.map(order => (
+              <OrderCard key={order.id} order={order} />
+            ))
+          )}
+        </TabsContent>
+
+        <TabsContent value="confirmed">
+          {orders.confirmed.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              No confirmed orders
+            </div>
+          ) : (
+            orders.confirmed.map(order => (
+              <OrderCard key={order.id} order={order} />
+            ))
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
 
-export default Orders;
+export default OrdersPage;

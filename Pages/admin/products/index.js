@@ -8,13 +8,13 @@ const ProductCard = ({ product, onEdit, onDelete }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   const nextImage = () => {
-    setCurrentImageIndex((prev) => 
+    setCurrentImageIndex((prev) =>
       prev === product.images.length - 1 ? 0 : prev + 1
     );
   };
 
   const previousImage = () => {
-    setCurrentImageIndex((prev) => 
+    setCurrentImageIndex((prev) =>
       prev === 0 ? product.images.length - 1 : prev - 1
     );
   };
@@ -85,7 +85,6 @@ const ProductCard = ({ product, onEdit, onDelete }) => {
   );
 };
 
-
 const AdminProductsPage = () => {
   const [products, setProducts] = useState([]);
   const [page, setPage] = useState(1);
@@ -100,29 +99,30 @@ const AdminProductsPage = () => {
     tags: "",
     category: "",
     images: [],
+    previewUrls: [] // Add previewUrls to initial state
   });
   const [editingProduct, setEditingProduct] = useState(null);
   const [error, setError] = useState("");
-  const [previewUrls, setPreviewUrls] = useState([]);
   const router = useRouter();
 
+  // Update handleImageChange for new product creation
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
-    
+
     // Create preview URLs
     const previews = files.map(file => URL.createObjectURL(file));
-    setPreviewUrls(previews);
-  
-    // Store the files in the form state
+
+    // Store both files and previews in the form state
     setNewProduct(prev => ({
       ...prev,
-      images: files
+      images: files,
+      previewUrls: previews
     }));
-  
+
     console.log("Selected files:", files);
   };
 
- const fetchProducts = async () => {
+  const fetchProducts = async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem("user");
@@ -131,9 +131,12 @@ const AdminProductsPage = () => {
         return;
       }
 
-      const response = await axios.get(`/api/admin/products?page=${page}&pageSize=12`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await axios.get(
+        `/api/admin/products?page=${page}&pageSize=12`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
       if (response.status === 200) {
         setProducts(response.data.products);
@@ -156,19 +159,21 @@ const AdminProductsPage = () => {
       <div className="container mx-auto p-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {[...Array(12)].map((_, index) => (
-            <div key={index} className="bg-gray-100 animate-pulse h-80 rounded-lg"></div>
+            <div
+              key={index}
+              className="bg-gray-100 animate-pulse h-80 rounded-lg"
+            ></div>
           ))}
         </div>
       </div>
     );
   }
 
-
   const createProduct = async (e) => {
     e.preventDefault();
     try {
       setLoading(true);
-      
+
       const token = localStorage.getItem("user");
       if (!token) {
         router.push("/login");
@@ -184,7 +189,7 @@ const AdminProductsPage = () => {
 
       // Create FormData object
       const formData = new FormData();
-      
+
       // Log the data being sent
       console.log("Sending product data:", newProduct);
 
@@ -193,13 +198,16 @@ const AdminProductsPage = () => {
       formData.append("salesPrice", newProduct.salesPrice.toString());
       formData.append("mrp", newProduct.mrp.toString());
       formData.append("packageSize", newProduct.packageSize.toString());
-      formData.append("tags", JSON.stringify(newProduct.tags.split(",").map(tag => tag.trim())));
+      formData.append(
+        "tags",
+        JSON.stringify(newProduct.tags.split(",").map((tag) => tag.trim()))
+      );
       formData.append("category", newProduct.category);
 
       // Append each image file
       newProduct.images.forEach((file, index) => {
         console.log("Appending file:", file.name);
-        formData.append('images', file);
+        formData.append("images", file);
       });
 
       // Log the FormData (for debugging)
@@ -208,9 +216,9 @@ const AdminProductsPage = () => {
       }
 
       const response = await axios.post("/api/admin/products", formData, {
-        headers: { 
+        headers: {
           Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data'
+          "Content-Type": "multipart/form-data",
         },
       });
 
@@ -226,111 +234,116 @@ const AdminProductsPage = () => {
           category: "",
           images: [],
         });
-        setPreviewUrls([]);
         await fetchProducts();
       }
     } catch (error) {
       console.error("Detailed error:", error);
-      setError(error.response?.data?.message || "Failed to create product. Please try again.");
+      setError(
+        error.response?.data?.message ||
+          "Failed to create product. Please try again."
+      );
     } finally {
       setLoading(false);
     }
-};
+  };
 
+  const editProduct = async (e) => {
+    e.preventDefault();
+    try {
+      setLoading(true);
 
-const editProduct = async (e) => {
-  e.preventDefault();
-  try {
-    setLoading(true);
+      const token = localStorage.getItem("user");
+      if (!token) {
+        router.push("/login");
+        return;
+      }
 
-    const token = localStorage.getItem("user");
-    if (!token) {
-      router.push("/login");
-      return;
-    }
+      // Create FormData for multipart/form-data
+      const formData = new FormData();
+      formData.append("id", editingProduct.id);
+      formData.append("name", editingProduct.name);
+      formData.append("wsCode", Number(editingProduct.wsCode));
+      formData.append("salesPrice", Number(editingProduct.salesPrice));
+      formData.append("mrp", Number(editingProduct.mrp));
+      formData.append("packageSize", Number(editingProduct.packageSize));
+      formData.append("category", editingProduct.category);
 
-    // Create FormData for multipart/form-data
-    const formData = new FormData();
-    formData.append("id", editingProduct.id);
-    formData.append("name", editingProduct.name);
-    formData.append("wsCode", Number(editingProduct.wsCode));
-    formData.append("salesPrice", Number(editingProduct.salesPrice));
-    formData.append("mrp", Number(editingProduct.mrp));
-    formData.append("packageSize", Number(editingProduct.packageSize));
-    formData.append("category", editingProduct.category);
+      // Handle tags
+      const tags = Array.isArray(editingProduct.tags)
+        ? editingProduct.tags
+        : editingProduct.tags.split(",").map((tag) => tag.trim());
+      formData.append("tags", JSON.stringify(tags));
 
-    // Handle tags
-    const tags = Array.isArray(editingProduct.tags) 
-      ? editingProduct.tags 
-      : editingProduct.tags.split(",").map(tag => tag.trim());
-    formData.append("tags", JSON.stringify(tags));
+      // Handle existing images
+      const existingImages = Array.isArray(editingProduct.images)
+        ? editingProduct.images
+        : editingProduct.images.split(",").map((img) => img.trim());
+      formData.append("existingImages", JSON.stringify(existingImages));
 
-    // Handle existing images
-    const existingImages = Array.isArray(editingProduct.images)
-      ? editingProduct.images
-      : editingProduct.images.split(",").map(img => img.trim());
-    formData.append("existingImages", JSON.stringify(existingImages));
+      // Append new image files if any
+      if (editingProduct.newImages) {
+        editingProduct.newImages.forEach((file) => {
+          formData.append("images", file);
+        });
+      }
 
-    // Append new image files if any
-    if (editingProduct.newImages) {
-      editingProduct.newImages.forEach((file) => {
-        formData.append("images", file);
+      const response = await axios.put("/api/admin/products", formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
       });
-    }
 
-    const response = await axios.put("/api/admin/products", formData, {
-      headers: { 
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'multipart/form-data'
-      },
-    });
-
-    if (response.status === 200) {
-      setEditingProduct(null);
-      await fetchProducts();
-    } else {
+      if (response.status === 200) {
+        setEditingProduct(null);
+        await fetchProducts();
+      } else {
+        setError("Failed to update product. Please try again.");
+      }
+    } catch (error) {
+      console.error("Update error:", error);
       setError("Failed to update product. Please try again.");
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    console.error("Update error:", error);
-    setError("Failed to update product. Please try again.");
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
-// Handle image change in edit mode
-const handleEditImageChange = (e) => {
+ // Update handleEditImageChange for editing products
+ const handleEditImageChange = (e) => {
   const files = Array.from(e.target.files);
-  
-  // Create preview URLs for new images
-  const newPreviews = files.map(file => URL.createObjectURL(file));
-  
-  setEditingProduct(prev => ({
-    ...prev,
-    newImages: files,
-    previewUrls: [...(prev.previewUrls || []), ...newPreviews]
-  }));
-};
 
-// Remove existing image
-const handleRemoveExistingImage = (indexToRemove) => {
-  setEditingProduct(prev => ({
-    ...prev,
-    images: prev.images.filter((_, index) => index !== indexToRemove)
-  }));
-};
+    // Create preview URLs for new images
+    const newPreviews = files.map(file => URL.createObjectURL(file));
+    
+    setEditingProduct(prev => ({
+      ...prev,
+      newImages: files,
+      previewUrls: [...(prev?.previewUrls || []), ...newPreviews] // Safe access with optional chaining
+    }));
+  };
 
-// Remove new image
-const handleRemoveNewImage = (indexToRemove) => {
-  setEditingProduct(prev => ({
-    ...prev,
-    newImages: prev.newImages.filter((_, index) => index !== indexToRemove),
-    previewUrls: prev.previewUrls.filter((_, index) => index !== indexToRemove)
-  }));
-};
-  
-  
+  // Updated handleRemoveExistingImage
+  const handleRemoveExistingImage = (indexToRemove) => {
+    setEditingProduct(prev => ({
+      ...prev,
+      images: prev.images.filter((_, index) => index !== indexToRemove)
+    }));
+  };
+
+  // Updated handleRemoveNewImage
+  const handleRemoveNewImage = (indexToRemove) => {
+    setEditingProduct(prev => {
+      // Remove from both newImages and previewUrls arrays
+      const newImages = prev.newImages.filter((_, index) => index !== indexToRemove);
+      const previewUrls = prev.previewUrls.filter((_, index) => index !== indexToRemove);
+      
+      return {
+        ...prev,
+        newImages,
+        previewUrls
+      };
+    });
+  };
 
   const deleteProduct = async (id) => {
     try {
@@ -373,7 +386,7 @@ const handleRemoveNewImage = (indexToRemove) => {
     } else {
       setNewProduct({ ...newProduct, [field]: value });
     }
-    
+
     if (editingProduct) {
       setEditingProduct({ ...editingProduct, [field]: value });
     } else {
@@ -381,11 +394,82 @@ const handleRemoveNewImage = (indexToRemove) => {
     }
   };
 
+  const renderImagePreviews = () => {
+    if (editingProduct) {
+      return (
+        <div className="flex flex-wrap gap-4 mb-4">
+          {/* Existing images */}
+          {editingProduct.images?.map((image, index) => (
+            <div key={`existing-${index}`} className="relative">
+              <img
+                src={image}
+                alt={`Product ${index + 1}`}
+                className="w-20 h-20 object-cover rounded"
+              />
+              <button
+                type="button"
+                onClick={() => handleRemoveExistingImage(index)}
+                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+          
+          {/* New image previews */}
+          {editingProduct.previewUrls?.map((url, index) => (
+            <div key={`new-${index}`} className="relative">
+              <img
+                src={url}
+                alt={`New upload ${index + 1}`}
+                className="w-20 h-20 object-cover rounded"
+              />
+              <button
+                type="button"
+                onClick={() => handleRemoveNewImage(index)}
+                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+      );
+    } else {
+      // New product image previews
+      return (
+        <div className="flex flex-wrap gap-4 mb-4">
+          {newProduct.previewUrls?.map((url, index) => (
+            <div key={index} className="relative">
+              <img
+                src={url}
+                alt={`Upload ${index + 1}`}
+                className="w-20 h-20 object-cover rounded"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setNewProduct(prev => ({
+                    ...prev,
+                    images: prev.images.filter((_, i) => i !== index),
+                    previewUrls: prev.previewUrls.filter((_, i) => i !== index)
+                  }));
+                }}
+                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+      );
+    }
+  };
+
   return (
     <div className="container mx-auto p-6">
       <h1 className="text-3xl font-semibold mb-4">Admin Product Management</h1>
       {error && <p className="text-red-500">{error}</p>}
-
       <div className="mb-6">
         <h2 className="text-xl font-semibold mb-4">
           {editingProduct ? "Edit Product" : "Create New Product"}
@@ -414,7 +498,9 @@ const handleRemoveNewImage = (indexToRemove) => {
             <input
               type="number"
               value={
-                editingProduct ? editingProduct.salesPrice : newProduct.salesPrice
+                editingProduct
+                  ? editingProduct.salesPrice
+                  : newProduct.salesPrice
               }
               onChange={(e) => handleChange("salesPrice", e.target.value)}
               className="w-full p-2 border rounded"
@@ -463,48 +549,13 @@ const handleRemoveNewImage = (indexToRemove) => {
             />
           </div>
           <div className="mb-4">
-          <label className="block mb-2">Images</label>
-<div className="flex flex-wrap gap-4 mb-4">
-  {/* Add a check to ensure `editingProduct` and `editingProduct.images` are valid */}
-  {editingProduct?.images?.length > 0 && editingProduct.images.map((image, index) => (
-    <div key={index} className="relative">
-      <img
-        src={image}
-        alt={`Product ${index + 1}`}
-        className="w-20 h-20 object-cover rounded"
-      />
-      <button
-        type="button"
-        onClick={() => handleRemoveExistingImage(index)}
-        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6"
-      >
-        ×
-      </button>
-    </div>
-  ))}
-  
-  {/* Handle `previewUrls` with a similar check */}
-  {editingProduct?.previewUrls?.map((url, index) => (
-    <div key={`new-${index}`} className="relative">
-      <img
-        src={url}
-        alt={`New upload ${index + 1}`}
-        className="w-20 h-20 object-cover rounded"
-      />
-      <button
-        type="button"
-        onClick={() => handleRemoveNewImage(index)}
-        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6"
-      >
-        ×
-      </button>
-    </div>
-  ))}
-        
-            </div>
+            <label className="block mb-2">Images</label>
+            {renderImagePreviews()}
             <input
               type="file"
-              onChange={handleEditImageChange}
+              onChange={
+                editingProduct ? handleEditImageChange : handleImageChange
+              }
               className="w-full p-2 border rounded"
               accept="image/*"
               multiple
@@ -537,7 +588,6 @@ const handleRemoveNewImage = (indexToRemove) => {
           </div>
         </form>
       </div>
-
       {loading ? (
         <p>Loading products...</p>
       ) : (
@@ -547,7 +597,7 @@ const handleRemoveNewImage = (indexToRemove) => {
               {error}
             </div>
           )}
-          
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {products.map((product) => (
               <ProductCard
@@ -558,11 +608,11 @@ const handleRemoveNewImage = (indexToRemove) => {
               />
             ))}
           </div>
-    
+
           {totalPages > 1 && (
             <div className="mt-6 flex justify-center gap-2">
               <button
-                onClick={() => setPage(p => Math.max(1, p - 1))}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page === 1}
                 className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
               >
@@ -572,7 +622,7 @@ const handleRemoveNewImage = (indexToRemove) => {
                 Page {page} of {totalPages}
               </span>
               <button
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
                 className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
               >
@@ -581,7 +631,8 @@ const handleRemoveNewImage = (indexToRemove) => {
             </div>
           )}
         </div>
-      )};
+      )}
+      ;
     </div>
   );
 };
