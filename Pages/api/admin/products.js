@@ -85,8 +85,6 @@ async function handleGet(req, res) {
 
 async function handlePost(req, res) {
   try {
-    console.log("Starting file upload process");
-    
     // Parse form data
     const form = new IncomingForm({ 
       multiples: true,
@@ -99,8 +97,7 @@ async function handlePost(req, res) {
           console.error("Form parsing error:", err);
           reject(err);
         }
-        console.log("Parsed fields:", fields);
-        console.log("Parsed files:", files);
+
         resolve([fields, files]);
       });
     });
@@ -111,7 +108,6 @@ async function handlePost(req, res) {
     // Handle image uploads with better error checking
     if (files && files.images) {
       const imageFiles = Array.isArray(files.images) ? files.images : [files.images];
-      console.log("Number of images to process:", imageFiles.length);
       
       // Upload each image to Cloudinary
       for (const file of imageFiles) {
@@ -121,21 +117,17 @@ async function handlePost(req, res) {
         }
 
         try {
-          console.log("Uploading file:", file.filepath);
           const result = await cloudinary.v2.uploader.upload(file.filepath, {
             folder: 'product_images',
             use_filename: true,
             resource_type: 'auto'
           });
-          console.log("Upload successful:", result.secure_url);
           uploadedImages.push(result.secure_url);
         } catch (uploadError) {
           console.error("Cloudinary upload error for file:", file.filepath, uploadError);
           throw new Error(`Failed to upload image to Cloudinary: ${uploadError.message}`);
         }
       }
-    } else {
-      console.log("No images found in request");
     }
 
     // Create new product with uploaded image URLs
@@ -150,13 +142,9 @@ async function handlePost(req, res) {
       images: uploadedImages,
     };
 
-    console.log("Creating product with data:", productData);
-
     const newProduct = await prisma.product.create({
       data: productData
     });
-
-    console.log("Product created successfully:", newProduct);
 
     res.status(201).json({ 
       message: 'Product created successfully', 
@@ -171,14 +159,6 @@ async function handlePost(req, res) {
     });
   }
 }
-
-const handleRemoveNewImage = (indexToRemove) => {
-  setEditingProduct(prev => ({
-    ...prev,
-    newImages: prev.newImages.filter((_, index) => index !== indexToRemove),
-    previewUrls: prev.previewUrls.filter((_, index) => index !== indexToRemove)
-  }));
-};
 
 // Backend API handler
 async function handlePut(req, res) {

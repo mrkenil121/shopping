@@ -30,11 +30,6 @@ const AdminLayout = ({ children }) => {
               <span className="text-xl font-bold text-gray-800">Admin Dashboard</span>
             </div>
             <div className="flex items-center gap-4">
-              <div className="relative">
-                <button className="flex items-center gap-2 text-gray-700 hover:text-gray-900">
-                  <span>Admin</span>
-                </button>
-              </div>
               <button 
                 onClick={handleLogout}
                 className="flex items-center gap-2 text-gray-700 hover:text-gray-900"

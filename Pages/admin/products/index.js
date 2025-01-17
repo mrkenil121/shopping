@@ -118,20 +118,18 @@ const ProductCard = ({ product, onEdit, onDelete }) => {
 };
 
 const ProductForm = ({ editingProduct, onSubmit, onCancel }) => {
-  const [formData, setFormData] = useState(
-    editingProduct || {
-      name: "",
-      wsCode: "",
-      salesPrice: "",
-      mrp: "",
-      packageSize: "",
-      tags: "",
-      category: "",
-      images: [],
-      previewUrls: [],
-      newImages: [] // Add this for handling new image uploads during edit
-    }
-  );
+  const [formData, setFormData] = useState({
+    name: editingProduct?.name || "",
+    wsCode: editingProduct?.wsCode || "",
+    salesPrice: editingProduct?.salesPrice || "",
+    mrp: editingProduct?.mrp || "",
+    packageSize: editingProduct?.packageSize || "",
+    tags: editingProduct?.tags?.join(", ") || "",
+    category: editingProduct?.category || "",
+    images: editingProduct?.images || [],
+    newImages: [],
+    previewUrls: editingProduct?.images || []
+  });
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -141,61 +139,34 @@ const ProductForm = ({ editingProduct, onSubmit, onCancel }) => {
     const files = Array.from(e.target.files);
     const previews = files.map(file => URL.createObjectURL(file));
 
-    if (editingProduct) {
-      setFormData(prev => ({
-        ...prev,
-        newImages: [...(prev.newImages || []), ...files],
-        previewUrls: [...(prev.previewUrls || []), ...previews]
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        images: files,
-        previewUrls: previews
-      }));
-    }
+    setFormData(prev => ({
+      ...prev,
+      newImages: [...prev.newImages, ...files],
+      previewUrls: [...prev.previewUrls, ...previews]
+    }));
   };
 
-  const handleRemoveImage = (index, type) => {
-    if (type === 'existing') {
+  const handleRemoveImage = (index, isExisting = false) => {
+    if (isExisting) {
       setFormData(prev => ({
         ...prev,
-        images: prev.images.filter((_, i) => i !== index)
+        images: prev.images.filter((_, i) => i !== index),
+        previewUrls: prev.previewUrls.filter((_, i) => i !== index)
       }));
     } else {
+      const newImageIndex = index - (formData.images?.length || 0);
       setFormData(prev => ({
         ...prev,
-        newImages: prev.newImages.filter((_, i) => i !== index),
+        newImages: prev.newImages.filter((_, i) => i !== newImageIndex),
         previewUrls: prev.previewUrls.filter((_, i) => i !== index)
       }));
     }
   };
 
-  const handleEditImageChange = (e) => {
-    const files = Array.from(e.target.files);
-
-    // Create preview URLs for new images
-    const newPreviews = files.map(file => URL.createObjectURL(file));
-
-    setEditingProduct(prev => ({
-      ...prev,
-      newImages: files,
-      previewUrls: [...(prev?.previewUrls || []), ...newPreviews] // Safe access with optional chaining
-    }));
-  };
-
-  // Updated handleRemoveExistingImage
-  const handleRemoveExistingImage = (indexToRemove) => {
-    setEditingProduct(prev => ({
-      ...prev,
-      images: prev.images.filter((_, index) => index !== indexToRemove)
-    }));
-  };
-
   const renderImagePreviews = () => (
     <div className="flex flex-wrap gap-4 mb-4">
       {/* Existing images */}
-      {editingProduct && formData.images?.map((image, index) => (
+      {formData.images.map((image, index) => (
         <div key={`existing-${index}`} className="relative">
           <img
             src={image}
@@ -204,7 +175,7 @@ const ProductForm = ({ editingProduct, onSubmit, onCancel }) => {
           />
           <Button
             type="button"
-            onClick={() => handleRemoveImage(index, 'existing')}
+            onClick={() => handleRemoveImage(index, true)}
             variant="destructive"
             size="icon"
             className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
@@ -215,16 +186,16 @@ const ProductForm = ({ editingProduct, onSubmit, onCancel }) => {
       ))}
 
       {/* New image previews */}
-      {formData.previewUrls?.map((url, index) => (
+      {formData.newImages.map((_, index) => (
         <div key={`new-${index}`} className="relative">
           <img
-            src={url}
+            src={formData.previewUrls[formData.images.length + index]}
             alt={`New upload ${index + 1}`}
             className="w-20 h-20 object-cover rounded"
           />
           <Button
             type="button"
-            onClick={() => handleRemoveImage(index, 'new')}
+            onClick={() => handleRemoveImage(formData.images.length + index)}
             variant="destructive"
             size="icon"
             className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
@@ -308,7 +279,7 @@ const ProductForm = ({ editingProduct, onSubmit, onCancel }) => {
           <Input
             id="images"
             type="file"
-            onChange={editingProduct ? handleEditImageChange : handleImageChange}
+            onChange={handleImageChange}
             accept="image/*"
             multiple
             className="cursor-pointer"
@@ -349,23 +320,6 @@ const AdminProductsPage = () => {
   const [editingProduct, setEditingProduct] = useState(null);
   const [error, setError] = useState("");
   const router = useRouter();
-
-  // Update handleImageChange for new product creation
-  const handleImageChange = (e) => {
-    const files = Array.from(e.target.files);
-
-    // Create preview URLs
-    const previews = files.map(file => URL.createObjectURL(file));
-
-    // Store both files and previews in the form state
-    setNewProduct(prev => ({
-      ...prev,
-      images: files,
-      previewUrls: previews
-    }));
-
-    console.log("Selected files:", files);
-  };
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -424,7 +378,6 @@ const AdminProductsPage = () => {
         return;
       }
 
-      // Create FormData object
       const submitData = new FormData();
       submitData.append("name", formData.name);
       submitData.append("wsCode", formData.wsCode.toString());
@@ -433,16 +386,14 @@ const AdminProductsPage = () => {
       submitData.append("packageSize", formData.packageSize.toString());
       submitData.append("category", formData.category);
 
-      // Handle tags properly whether they're a string or array
+      // Handle tags
       const tags = typeof formData.tags === 'string'
         ? formData.tags.split(',').map(tag => tag.trim())
-        : Array.isArray(formData.tags)
-          ? formData.tags
-          : [];
+        : formData.tags;
       submitData.append("tags", JSON.stringify(tags));
 
-      // Append image files
-      formData.images.forEach((file) => {
+      // Append new images
+      formData.newImages.forEach((file) => {
         submitData.append("images", file);
       });
 
@@ -459,13 +410,12 @@ const AdminProductsPage = () => {
       }
     } catch (error) {
       console.error("Error creating product:", error);
-      setError(error.response?.data?.message || "Failed to create product. Please try again.");
+      setError(error.response?.data?.message || "Failed to create product");
     } finally {
       setLoading(false);
     }
   };
 
-  // In the editProduct function, update the tags handling:
   const editProduct = async (formData) => {
     try {
       setLoading(true);
@@ -476,7 +426,7 @@ const AdminProductsPage = () => {
       }
 
       const submitData = new FormData();
-      submitData.append("id", formData.id);
+      submitData.append("id", editingProduct.id);
       submitData.append("name", formData.name);
       submitData.append("wsCode", formData.wsCode.toString());
       submitData.append("salesPrice", formData.salesPrice.toString());
@@ -484,18 +434,15 @@ const AdminProductsPage = () => {
       submitData.append("packageSize", formData.packageSize.toString());
       submitData.append("category", formData.category);
 
-      // Handle tags properly whether they're a string or array
+      // Handle tags
       const tags = typeof formData.tags === 'string'
         ? formData.tags.split(',').map(tag => tag.trim())
-        : Array.isArray(formData.tags)
-          ? formData.tags
-          : [];
+        : formData.tags;
       submitData.append("tags", JSON.stringify(tags));
 
+      // Handle existing and new images
       submitData.append("existingImages", JSON.stringify(formData.images));
-
-      // Append new images if any
-      formData.newImages?.forEach((file) => {
+      formData.newImages.forEach((file) => {
         submitData.append("images", file);
       });
 
@@ -513,25 +460,10 @@ const AdminProductsPage = () => {
       }
     } catch (error) {
       console.error("Error updating product:", error);
-      setError("Failed to update product. Please try again.");
+      setError("Failed to update product");
     } finally {
       setLoading(false);
     }
-  };
-
-  // Updated handleRemoveNewImage
-  const handleRemoveNewImage = (indexToRemove) => {
-    setEditingProduct(prev => {
-      // Remove from both newImages and previewUrls arrays
-      const newImages = prev.newImages.filter((_, index) => index !== indexToRemove);
-      const previewUrls = prev.previewUrls.filter((_, index) => index !== indexToRemove);
-
-      return {
-        ...prev,
-        newImages,
-        previewUrls
-      };
-    });
   };
 
   const deleteProduct = async (id) => {
@@ -557,118 +489,6 @@ const AdminProductsPage = () => {
     router.push('/login');
   };
 
-  const handleChange = (field, value) => {
-    if (field === "images") {
-      const files = Array.from(value);
-      setPreviewUrls(files.map((file) => URL.createObjectURL(file))); // For previewing images
-
-      // Upload images to Cloudinary
-      const uploadPromises = files.map((file) => uploadImageToCloudinary(file));
-      Promise.all(uploadPromises)
-        .then((uploadedUrls) => {
-          setNewProduct({ ...newProduct, images: uploadedUrls });
-        })
-        .catch((error) => {
-          setError("Failed to upload images. Please try again.");
-        });
-    } else {
-      setNewProduct({ ...newProduct, [field]: value });
-    }
-
-    if (editingProduct) {
-      setEditingProduct({ ...editingProduct, [field]: value });
-    } else {
-      setNewProduct({ ...newProduct, [field]: value });
-    }
-
-    if (editingProduct) {
-      setEditingProduct({ ...editingProduct, [field]: value });
-    } else {
-      setNewProduct({ ...newProduct, [field]: value });
-    }
-  };
-
-  const renderImagePreviews = () => {
-    if (editingProduct) {
-      return (
-        <div className="flex flex-wrap gap-4 mb-4">
-          {/* Existing images */}
-          {formData.images?.map((image, index) => (
-            <div key={`existing-${index}`} className="relative">
-              <img
-                src={image}
-                alt={`Product ${index + 1}`}
-                className="w-20 h-20 object-cover rounded"
-              />
-              <Button
-                type="button"
-                onClick={() => handleRemoveExistingImage(index)}
-                variant="destructive"
-                size="icon"
-                className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
-              >
-                ×
-              </Button>
-            </div>
-          ))}
-
-          {/* New image previews */}
-          {formData.previewUrls?.map((url, index) => (
-            <div key={`new-${index}`} className="relative">
-              <img
-                src={url}
-                alt={`New upload ${index + 1}`}
-                className="w-20 h-20 object-cover rounded"
-              />
-              <Button
-                type="button"
-                onClick={() => handleRemoveNewImage(index)}
-                variant="destructive"
-                size="icon"
-                className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
-              >
-                ×
-              </Button>
-            </div>
-          ))}
-        </div>
-      );
-    } else {
-      // New product image previews
-      return (
-        <div className="flex flex-wrap gap-4 mb-4">
-          {formData.previewUrls?.map((url, index) => (
-            <div key={index} className="relative">
-              <img
-                src={url}
-                alt={`Upload ${index + 1}`}
-                className="w-20 h-20 object-cover rounded"
-              />
-              <Button
-                type="button"
-                onClick={() => {
-                  setFormData(prev => ({
-                    ...prev,
-                    images: prev.images.filter((_, i) => i !== index),
-                    previewUrls: prev.previewUrls.filter((_, i) => i !== index)
-                  }));
-                }}
-                variant="destructive"
-                size="icon"
-                className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
-              >
-                ×
-              </Button>
-            </div>
-          ))}
-        </div>
-      );
-    }
-  };
-
-
-
-
   return (
     <div className="min-h-screen bg-gray-100">
       <nav className="bg-white shadow-sm border-b">
@@ -678,11 +498,6 @@ const AdminProductsPage = () => {
               <span className="text-xl font-bold text-gray-800">Admin Dashboard</span>
             </div>
             <div className="flex items-center gap-4">
-              <div className="relative">
-                <button className="flex items-center gap-2 text-gray-700 hover:text-gray-900">
-                  <span>Admin</span>
-                </button>
-              </div>
               <button
                 onClick={handleLogout}
                 className="flex items-center gap-2 text-gray-700 hover:text-gray-900"
