@@ -1,83 +1,110 @@
-'use client'
-
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/compat/router'; // Correct import for Next.js 13 and later
-import { useAuth } from '../auth/AuthProvider';
+import React from 'react';
+import { useRouter } from 'next/router';
 import Link from 'next/link';
+import { 
+  LayoutDashboard, 
+  Package, 
+  Users, 
+  ShoppingCart, 
+  LogOut,
+  ChevronDown
+} from 'lucide-react';
 
 const AdminLayout = ({ children }) => {
-  const { user, logout } = useAuth();
-  const [isClient, setIsClient] = useState(false); // To track whether the component is mounted client-side
   const router = useRouter();
-
-  useEffect(() => {
-    setIsClient(true); // Set client flag to true on mount
-  }, []);
-
-  if (!isClient) return null; // Prevent server-side rendering issues
+  
+  const isActive = (path) => router.pathname === path;
 
   const handleLogout = () => {
-    // Clear localStorage and redirect to login
-    localStorage.removeItem('auth_token');
-    logout();
+    localStorage.removeItem('user');
     router.push('/login');
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
-      {/* Sidebar */}
-      <div className="w-64 bg-gray-800 text-white">
-        <div className="p-4">
-          <h1 className="text-2xl font-semibold">Admin Dashboard</h1>
-        </div>
-        <nav className="mt-8">
-          <ul>
-            <li>
-              <Link href="/admin/dashboard" className="block py-2 px-4 hover:bg-gray-700">
-                Dashboard
-              </Link>
-            </li>
-            <li>
-              <Link href="/admin/orders" className="block py-2 px-4 hover:bg-gray-700">
-                Orders
-              </Link>
-            </li>
-            <li>
-              <Link href="/admin/products" className="block py-2 px-4 hover:bg-gray-700">
-                Products
-              </Link>
-            </li>
-            <li>
-              <Link href="/admin/customers" className="block py-2 px-4 hover:bg-gray-700">
-                Customers
-              </Link>
-            </li>
-            <li>
-              <Link href="/admin/reports" className="block py-2 px-4 hover:bg-gray-700">
-                Reports
-              </Link>
-            </li>
-            <li>
-              <button
+    <div className="min-h-screen bg-gray-100">
+      {/* Top Navigation Bar */}
+      <nav className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-16">
+            <div className="flex items-center">
+              <span className="text-xl font-bold text-gray-800">Admin Dashboard</span>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <button className="flex items-center gap-2 text-gray-700 hover:text-gray-900">
+                  <span>Admin</span>
+                </button>
+              </div>
+              <button 
                 onClick={handleLogout}
-                className="w-full py-2 px-4 mt-4 bg-red-600 text-white hover:bg-red-700"
+                className="flex items-center gap-2 text-gray-700 hover:text-gray-900"
               >
-                Log Out
+                <LogOut size={18} />
+                <span>Logout</span>
               </button>
-            </li>
-          </ul>
-        </nav>
-      </div>
+            </div>
+          </div>
+        </div>
+      </nav>
 
-      {/* Main Content Area */}
-      <div className="flex-1 p-6">
-        {/* Admin Header */}
-        <header className="flex justify-between items-center mb-6">
-          <h2 className="text-3xl font-semibold">Welcome, {user?.name}!</h2>
-        </header>
+      <div className="flex">
+        {/* Sidebar */}
+        <aside className="w-64 bg-white shadow-sm min-h-screen">
+          <nav className="mt-5 px-2">
+            <Link 
+              href="/admin/dashboard" 
+              className={`flex items-center gap-2 px-4 py-2 text-sm rounded-lg mb-1
+                ${isActive('/admin/dashboard') 
+                  ? 'bg-blue-50 text-blue-700' 
+                  : 'text-gray-700 hover:bg-gray-50'
+                }`}
+            >
+              <LayoutDashboard size={18} />
+              <span>Dashboard</span>
+            </Link>
 
-        {/* Content */}
-        <div className="bg-white p-6 rounded shadow-md">{children}</div>
+            <Link 
+              href="/admin/orders" 
+              className={`flex items-center gap-2 px-4 py-2 text-sm rounded-lg mb-1
+                ${isActive('/admin/orders') 
+                  ? 'bg-blue-50 text-blue-700' 
+                  : 'text-gray-700 hover:bg-gray-50'
+                }`}
+            >
+              <ShoppingCart size={18} />
+              <span>Orders</span>
+            </Link>
+
+            <Link 
+              href="/admin/products" 
+              className={`flex items-center gap-2 px-4 py-2 text-sm rounded-lg mb-1
+                ${isActive('/admin/products') 
+                  ? 'bg-blue-50 text-blue-700' 
+                  : 'text-gray-700 hover:bg-gray-50'
+                }`}
+            >
+              <Package size={18} />
+              <span>Products</span>
+            </Link>
+
+            <Link 
+              href="/admin/users" 
+              className={`flex items-center gap-2 px-4 py-2 text-sm rounded-lg mb-1
+                ${isActive('/admin/users') 
+                  ? 'bg-blue-50 text-blue-700' 
+                  : 'text-gray-700 hover:bg-gray-50'
+                }`}
+            >
+              <Users size={18} />
+              <span>Users</span>
+            </Link>
+          </nav>
+        </aside>
+
+        {/* Main Content */}
+        <main className="flex-1 py-6 px-8">
+          {children}
+        </main>
       </div>
     </div>
   );

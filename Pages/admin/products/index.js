@@ -3,6 +3,28 @@ import axios from "axios";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import "@/app/globals.css";
+import { Package, Trash2, CheckCircle, Clock, LogOut, Plus } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const ProductCard = ({ product, onEdit, onDelete }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -20,35 +42,39 @@ const ProductCard = ({ product, onEdit, onDelete }) => {
   };
 
   return (
-    <div className="bg-white shadow rounded-lg p-4 flex flex-col">
-      <div className="relative w-full h-48 mb-4">
+    <Card className="overflow-hidden">
+      <div className="relative w-full h-48">
         {product.images && product.images.length > 0 ? (
           <>
             <img
               src={product.images[currentImageIndex]}
               alt={`${product.name} - Image ${currentImageIndex + 1}`}
-              className="w-full h-full object-cover rounded-md"
+              className="w-full h-full object-cover"
             />
             {product.images.length > 1 && (
               <div className="absolute inset-0 flex items-center justify-between">
-                <button
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={(e) => {
                     e.preventDefault();
                     previousImage();
                   }}
-                  className="bg-black/50 text-white p-2 rounded-l hover:bg-black/70"
+                  className="ml-2 bg-black/50 hover:bg-black/70"
                 >
                   ←
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={(e) => {
                     e.preventDefault();
                     nextImage();
                   }}
-                  className="bg-black/50 text-white p-2 rounded-r hover:bg-black/70"
+                  className="mr-2 bg-black/50 hover:bg-black/70"
                 >
                   →
-                </button>
+                </Button>
               </div>
             )}
             <div className="absolute bottom-2 right-2 bg-black/50 text-white px-2 py-1 rounded text-sm">
@@ -56,30 +82,248 @@ const ProductCard = ({ product, onEdit, onDelete }) => {
             </div>
           </>
         ) : (
-          <div className="w-full h-full bg-gray-200 flex items-center justify-center rounded-md">
+          <div className="w-full h-full bg-gray-200 flex items-center justify-center">
             No Image
           </div>
         )}
       </div>
-      <h2 className="text-lg font-semibold mb-2">{product.name}</h2>
-      <div className="text-gray-600 mb-4">
-        <p>Price: ₹{product.salesPrice}</p>
-        <p>MRP: ₹{product.mrp}</p>
-        <p>Category: {product.category}</p>
-      </div>
-      <div className="flex gap-2 mt-auto">
-        <button
+      <CardHeader>
+        <CardTitle>{product.name}</CardTitle>
+        <CardDescription>Category: {product.category}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-1">
+          <p className="text-sm font-medium">Price: ₹{product.salesPrice}</p>
+          <p className="text-sm text-muted-foreground">MRP: ₹{product.mrp}</p>
+        </div>
+      </CardContent>
+      <CardFooter className="flex gap-2">
+        <Button
           onClick={() => onEdit(product)}
-          className="flex-1 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          className="flex-1"
+          variant="outline"
         >
           Edit
-        </button>
-        <button
+        </Button>
+        <Button
           onClick={() => onDelete(product.id)}
-          className="flex-1 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+          className="flex-1"
+          variant="destructive"
         >
           Delete
-        </button>
+        </Button>
+      </CardFooter>
+    </Card>
+  );
+};
+
+const ProductForm = ({ editingProduct, onSubmit, onCancel }) => {
+  const [formData, setFormData] = useState(
+    editingProduct || {
+      name: "",
+      wsCode: "",
+      salesPrice: "",
+      mrp: "",
+      packageSize: "",
+      tags: "",
+      category: "",
+      images: [],
+      previewUrls: [],
+      newImages: [] // Add this for handling new image uploads during edit
+    }
+  );
+
+  const handleChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleImageChange = (e) => {
+    const files = Array.from(e.target.files);
+    const previews = files.map(file => URL.createObjectURL(file));
+
+    if (editingProduct) {
+      setFormData(prev => ({
+        ...prev,
+        newImages: [...(prev.newImages || []), ...files],
+        previewUrls: [...(prev.previewUrls || []), ...previews]
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        images: files,
+        previewUrls: previews
+      }));
+    }
+  };
+
+  const handleRemoveImage = (index, type) => {
+    if (type === 'existing') {
+      setFormData(prev => ({
+        ...prev,
+        images: prev.images.filter((_, i) => i !== index)
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        newImages: prev.newImages.filter((_, i) => i !== index),
+        previewUrls: prev.previewUrls.filter((_, i) => i !== index)
+      }));
+    }
+  };
+
+  const handleEditImageChange = (e) => {
+    const files = Array.from(e.target.files);
+
+    // Create preview URLs for new images
+    const newPreviews = files.map(file => URL.createObjectURL(file));
+
+    setEditingProduct(prev => ({
+      ...prev,
+      newImages: files,
+      previewUrls: [...(prev?.previewUrls || []), ...newPreviews] // Safe access with optional chaining
+    }));
+  };
+
+  // Updated handleRemoveExistingImage
+  const handleRemoveExistingImage = (indexToRemove) => {
+    setEditingProduct(prev => ({
+      ...prev,
+      images: prev.images.filter((_, index) => index !== indexToRemove)
+    }));
+  };
+
+  const renderImagePreviews = () => (
+    <div className="flex flex-wrap gap-4 mb-4">
+      {/* Existing images */}
+      {editingProduct && formData.images?.map((image, index) => (
+        <div key={`existing-${index}`} className="relative">
+          <img
+            src={image}
+            alt={`Product ${index + 1}`}
+            className="w-20 h-20 object-cover rounded"
+          />
+          <Button
+            type="button"
+            onClick={() => handleRemoveImage(index, 'existing')}
+            variant="destructive"
+            size="icon"
+            className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
+          >
+            ×
+          </Button>
+        </div>
+      ))}
+
+      {/* New image previews */}
+      {formData.previewUrls?.map((url, index) => (
+        <div key={`new-${index}`} className="relative">
+          <img
+            src={url}
+            alt={`New upload ${index + 1}`}
+            className="w-20 h-20 object-cover rounded"
+          />
+          <Button
+            type="button"
+            onClick={() => handleRemoveImage(index, 'new')}
+            variant="destructive"
+            size="icon"
+            className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
+          >
+            ×
+          </Button>
+        </div>
+      ))}
+    </div>
+  );
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-4">
+        <div className="grid gap-2">
+          <Label htmlFor="name">Name</Label>
+          <Input
+            id="name"
+            value={formData.name}
+            onChange={(e) => handleChange("name", e.target.value)}
+          />
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="wsCode">WS Code</Label>
+          <Input
+            id="wsCode"
+            type="number"
+            value={formData.wsCode}
+            onChange={(e) => handleChange("wsCode", e.target.value)}
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-2">
+            <Label htmlFor="salesPrice">Sales Price</Label>
+            <Input
+              id="salesPrice"
+              type="number"
+              value={formData.salesPrice}
+              onChange={(e) => handleChange("salesPrice", e.target.value)}
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="mrp">MRP</Label>
+            <Input
+              id="mrp"
+              type="number"
+              value={formData.mrp}
+              onChange={(e) => handleChange("mrp", e.target.value)}
+            />
+          </div>
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="packageSize">Package Size</Label>
+          <Input
+            id="packageSize"
+            type="number"
+            value={formData.packageSize}
+            onChange={(e) => handleChange("packageSize", e.target.value)}
+          />
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="tags">Tags (comma-separated)</Label>
+          <Input
+            id="tags"
+            value={formData.tags}
+            onChange={(e) => handleChange("tags", e.target.value)}
+          />
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="category">Category</Label>
+          <Input
+            id="category"
+            value={formData.category}
+            onChange={(e) => handleChange("category", e.target.value)}
+          />
+        </div>
+
+        <div className="grid gap-2">
+          <Label htmlFor="images">Images</Label>
+          {renderImagePreviews()}
+          <Input
+            id="images"
+            type="file"
+            onChange={editingProduct ? handleEditImageChange : handleImageChange}
+            accept="image/*"
+            multiple
+            className="cursor-pointer"
+          />
+        </div>
+
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button onClick={() => onSubmit(formData)}>
+            {editingProduct ? "Update" : "Create"} Product
+          </Button>
+        </div>
+
       </div>
     </div>
   );
@@ -90,6 +334,7 @@ const AdminProductsPage = () => {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [totalPages, setTotalPages] = useState(1);
+  const [showForm, setShowForm] = useState(false);
   const [newProduct, setNewProduct] = useState({
     name: "",
     wsCode: "",
@@ -169,53 +414,39 @@ const AdminProductsPage = () => {
     );
   }
 
-  const createProduct = async (e) => {
-    e.preventDefault();
+  // In the createProduct function, update the tags handling:
+  const createProduct = async (formData) => {
     try {
       setLoading(true);
-
       const token = localStorage.getItem("user");
       if (!token) {
         router.push("/login");
         return;
       }
 
-      // Validate that we have images
-      if (!newProduct.images || newProduct.images.length === 0) {
-        setError("Please select at least one image");
-        setLoading(false);
-        return;
-      }
-
       // Create FormData object
-      const formData = new FormData();
+      const submitData = new FormData();
+      submitData.append("name", formData.name);
+      submitData.append("wsCode", formData.wsCode.toString());
+      submitData.append("salesPrice", formData.salesPrice.toString());
+      submitData.append("mrp", formData.mrp.toString());
+      submitData.append("packageSize", formData.packageSize.toString());
+      submitData.append("category", formData.category);
 
-      // Log the data being sent
-      console.log("Sending product data:", newProduct);
+      // Handle tags properly whether they're a string or array
+      const tags = typeof formData.tags === 'string'
+        ? formData.tags.split(',').map(tag => tag.trim())
+        : Array.isArray(formData.tags)
+          ? formData.tags
+          : [];
+      submitData.append("tags", JSON.stringify(tags));
 
-      formData.append("name", newProduct.name);
-      formData.append("wsCode", newProduct.wsCode.toString());
-      formData.append("salesPrice", newProduct.salesPrice.toString());
-      formData.append("mrp", newProduct.mrp.toString());
-      formData.append("packageSize", newProduct.packageSize.toString());
-      formData.append(
-        "tags",
-        JSON.stringify(newProduct.tags.split(",").map((tag) => tag.trim()))
-      );
-      formData.append("category", newProduct.category);
-
-      // Append each image file
-      newProduct.images.forEach((file, index) => {
-        console.log("Appending file:", file.name);
-        formData.append("images", file);
+      // Append image files
+      formData.images.forEach((file) => {
+        submitData.append("images", file);
       });
 
-      // Log the FormData (for debugging)
-      for (let pair of formData.entries()) {
-        console.log(pair[0], pair[1]);
-      }
-
-      const response = await axios.post("/api/admin/products", formData, {
+      const response = await axios.post("/api/admin/products", submitData, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data",
@@ -223,71 +454,52 @@ const AdminProductsPage = () => {
       });
 
       if (response.status === 201) {
-        // Reset form
-        setNewProduct({
-          name: "",
-          wsCode: "",
-          salesPrice: "",
-          mrp: "",
-          packageSize: "",
-          tags: "",
-          category: "",
-          images: [],
-        });
+        setShowForm(false);
         await fetchProducts();
       }
     } catch (error) {
-      console.error("Detailed error:", error);
-      setError(
-        error.response?.data?.message ||
-          "Failed to create product. Please try again."
-      );
+      console.error("Error creating product:", error);
+      setError(error.response?.data?.message || "Failed to create product. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  const editProduct = async (e) => {
-    e.preventDefault();
+  // In the editProduct function, update the tags handling:
+  const editProduct = async (formData) => {
     try {
       setLoading(true);
-
       const token = localStorage.getItem("user");
       if (!token) {
         router.push("/login");
         return;
       }
 
-      // Create FormData for multipart/form-data
-      const formData = new FormData();
-      formData.append("id", editingProduct.id);
-      formData.append("name", editingProduct.name);
-      formData.append("wsCode", Number(editingProduct.wsCode));
-      formData.append("salesPrice", Number(editingProduct.salesPrice));
-      formData.append("mrp", Number(editingProduct.mrp));
-      formData.append("packageSize", Number(editingProduct.packageSize));
-      formData.append("category", editingProduct.category);
+      const submitData = new FormData();
+      submitData.append("id", formData.id);
+      submitData.append("name", formData.name);
+      submitData.append("wsCode", formData.wsCode.toString());
+      submitData.append("salesPrice", formData.salesPrice.toString());
+      submitData.append("mrp", formData.mrp.toString());
+      submitData.append("packageSize", formData.packageSize.toString());
+      submitData.append("category", formData.category);
 
-      // Handle tags
-      const tags = Array.isArray(editingProduct.tags)
-        ? editingProduct.tags
-        : editingProduct.tags.split(",").map((tag) => tag.trim());
-      formData.append("tags", JSON.stringify(tags));
+      // Handle tags properly whether they're a string or array
+      const tags = typeof formData.tags === 'string'
+        ? formData.tags.split(',').map(tag => tag.trim())
+        : Array.isArray(formData.tags)
+          ? formData.tags
+          : [];
+      submitData.append("tags", JSON.stringify(tags));
 
-      // Handle existing images
-      const existingImages = Array.isArray(editingProduct.images)
-        ? editingProduct.images
-        : editingProduct.images.split(",").map((img) => img.trim());
-      formData.append("existingImages", JSON.stringify(existingImages));
+      submitData.append("existingImages", JSON.stringify(formData.images));
 
-      // Append new image files if any
-      if (editingProduct.newImages) {
-        editingProduct.newImages.forEach((file) => {
-          formData.append("images", file);
-        });
-      }
+      // Append new images if any
+      formData.newImages?.forEach((file) => {
+        submitData.append("images", file);
+      });
 
-      const response = await axios.put("/api/admin/products", formData, {
+      const response = await axios.put("/api/admin/products", submitData, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data",
@@ -295,39 +507,16 @@ const AdminProductsPage = () => {
       });
 
       if (response.status === 200) {
+        setShowForm(false);
         setEditingProduct(null);
         await fetchProducts();
-      } else {
-        setError("Failed to update product. Please try again.");
       }
     } catch (error) {
-      console.error("Update error:", error);
+      console.error("Error updating product:", error);
       setError("Failed to update product. Please try again.");
     } finally {
       setLoading(false);
     }
-  };
-
- // Update handleEditImageChange for editing products
- const handleEditImageChange = (e) => {
-  const files = Array.from(e.target.files);
-
-    // Create preview URLs for new images
-    const newPreviews = files.map(file => URL.createObjectURL(file));
-    
-    setEditingProduct(prev => ({
-      ...prev,
-      newImages: files,
-      previewUrls: [...(prev?.previewUrls || []), ...newPreviews] // Safe access with optional chaining
-    }));
-  };
-
-  // Updated handleRemoveExistingImage
-  const handleRemoveExistingImage = (indexToRemove) => {
-    setEditingProduct(prev => ({
-      ...prev,
-      images: prev.images.filter((_, index) => index !== indexToRemove)
-    }));
   };
 
   // Updated handleRemoveNewImage
@@ -336,7 +525,7 @@ const AdminProductsPage = () => {
       // Remove from both newImages and previewUrls arrays
       const newImages = prev.newImages.filter((_, index) => index !== indexToRemove);
       const previewUrls = prev.previewUrls.filter((_, index) => index !== indexToRemove);
-      
+
       return {
         ...prev,
         newImages,
@@ -361,6 +550,11 @@ const AdminProductsPage = () => {
     } catch (error) {
       setError("Failed to delete product.");
     }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    router.push('/login');
   };
 
   const handleChange = (field, value) => {
@@ -399,38 +593,42 @@ const AdminProductsPage = () => {
       return (
         <div className="flex flex-wrap gap-4 mb-4">
           {/* Existing images */}
-          {editingProduct.images?.map((image, index) => (
+          {formData.images?.map((image, index) => (
             <div key={`existing-${index}`} className="relative">
               <img
                 src={image}
                 alt={`Product ${index + 1}`}
                 className="w-20 h-20 object-cover rounded"
               />
-              <button
+              <Button
                 type="button"
                 onClick={() => handleRemoveExistingImage(index)}
-                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6"
+                variant="destructive"
+                size="icon"
+                className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
               >
                 ×
-              </button>
+              </Button>
             </div>
           ))}
-          
+
           {/* New image previews */}
-          {editingProduct.previewUrls?.map((url, index) => (
+          {formData.previewUrls?.map((url, index) => (
             <div key={`new-${index}`} className="relative">
               <img
                 src={url}
                 alt={`New upload ${index + 1}`}
                 className="w-20 h-20 object-cover rounded"
               />
-              <button
+              <Button
                 type="button"
                 onClick={() => handleRemoveNewImage(index)}
-                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6"
+                variant="destructive"
+                size="icon"
+                className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
               >
                 ×
-              </button>
+              </Button>
             </div>
           ))}
         </div>
@@ -439,26 +637,28 @@ const AdminProductsPage = () => {
       // New product image previews
       return (
         <div className="flex flex-wrap gap-4 mb-4">
-          {newProduct.previewUrls?.map((url, index) => (
+          {formData.previewUrls?.map((url, index) => (
             <div key={index} className="relative">
               <img
                 src={url}
                 alt={`Upload ${index + 1}`}
                 className="w-20 h-20 object-cover rounded"
               />
-              <button
+              <Button
                 type="button"
                 onClick={() => {
-                  setNewProduct(prev => ({
+                  setFormData(prev => ({
                     ...prev,
                     images: prev.images.filter((_, i) => i !== index),
                     previewUrls: prev.previewUrls.filter((_, i) => i !== index)
                   }));
                 }}
-                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6"
+                variant="destructive"
+                size="icon"
+                className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
               >
                 ×
-              </button>
+              </Button>
             </div>
           ))}
         </div>
@@ -466,173 +666,151 @@ const AdminProductsPage = () => {
     }
   };
 
+
+
+
   return (
-    <div className="container mx-auto p-6">
-      <h1 className="text-3xl font-semibold mb-4">Admin Product Management</h1>
-      {error && <p className="text-red-500">{error}</p>}
-      <div className="mb-6">
-        <h2 className="text-xl font-semibold mb-4">
-          {editingProduct ? "Edit Product" : "Create New Product"}
-        </h2>
-        <form>
-          <div className="mb-4">
-            <label className="block mb-2">Name</label>
-            <input
-              type="text"
-              value={editingProduct ? editingProduct.name : newProduct.name}
-              onChange={(e) => handleChange("name", e.target.value)}
-              className="w-full p-2 border rounded"
-            />
-          </div>
-          <div className="mb-4">
-            <label className="block mb-2">WS Code</label>
-            <input
-              type="number"
-              value={editingProduct ? editingProduct.wsCode : newProduct.wsCode}
-              onChange={(e) => handleChange("wsCode", e.target.value)}
-              className="w-full p-2 border rounded"
-            />
-          </div>
-          <div className="mb-4">
-            <label className="block mb-2">Sales Price</label>
-            <input
-              type="number"
-              value={
-                editingProduct
-                  ? editingProduct.salesPrice
-                  : newProduct.salesPrice
-              }
-              onChange={(e) => handleChange("salesPrice", e.target.value)}
-              className="w-full p-2 border rounded"
-            />
-          </div>
-          <div className="mb-4">
-            <label className="block mb-2">MRP</label>
-            <input
-              type="number"
-              value={editingProduct ? editingProduct.mrp : newProduct.mrp}
-              onChange={(e) => handleChange("mrp", e.target.value)}
-              className="w-full p-2 border rounded"
-            />
-          </div>
-          <div className="mb-4">
-            <label className="block mb-2">Package Size</label>
-            <input
-              type="number"
-              value={
-                editingProduct
-                  ? editingProduct.packageSize
-                  : newProduct.packageSize
-              }
-              onChange={(e) => handleChange("packageSize", e.target.value)}
-              className="w-full p-2 border rounded"
-            />
-          </div>
-          <div className="mb-4">
-            <label className="block mb-2">Tags (comma-separated)</label>
-            <input
-              type="text"
-              value={editingProduct ? editingProduct.tags : newProduct.tags}
-              onChange={(e) => handleChange("tags", e.target.value)}
-              className="w-full p-2 border rounded"
-            />
-          </div>
-          <div className="mb-4">
-            <label className="block mb-2">Category</label>
-            <input
-              type="text"
-              value={
-                editingProduct ? editingProduct.category : newProduct.category
-              }
-              onChange={(e) => handleChange("category", e.target.value)}
-              className="w-full p-2 border rounded"
-            />
-          </div>
-          <div className="mb-4">
-            <label className="block mb-2">Images</label>
-            {renderImagePreviews()}
-            <input
-              type="file"
-              onChange={
-                editingProduct ? handleEditImageChange : handleImageChange
-              }
-              className="w-full p-2 border rounded"
-              accept="image/*"
-              multiple
-            />
-          </div>
-          <div className="mb-4">
-            {editingProduct ? (
-              <button
-                onClick={editProduct}
-                className="px-4 py-2 bg-blue-600 text-white rounded"
-              >
-                Update Product
-              </button>
-            ) : (
-              <button
-                onClick={createProduct}
-                className="px-4 py-2 bg-blue-600 text-white rounded"
-              >
-                Create Product
-              </button>
-            )}
-            {editingProduct && (
-              <button
-                onClick={() => setEditingProduct(null)}
-                className="ml-4 px-4 py-2 bg-gray-600 text-white rounded"
-              >
-                Cancel
-              </button>
-            )}
-          </div>
-        </form>
-      </div>
-      {loading ? (
-        <p>Loading products...</p>
-      ) : (
-        <div className="container mx-auto p-6">
-          {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-              {error}
+    <div className="min-h-screen bg-gray-100">
+      <nav className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-16">
+            <div className="flex items-center">
+              <span className="text-xl font-bold text-gray-800">Admin Dashboard</span>
             </div>
-          )}
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {products.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                onEdit={(product) => setEditingProduct(product)}
-                onDelete={deleteProduct}
-              />
-            ))}
-          </div>
-
-          {totalPages > 1 && (
-            <div className="mt-6 flex justify-center gap-2">
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <button className="flex items-center gap-2 text-gray-700 hover:text-gray-900">
+                  <span>Admin</span>
+                </button>
+              </div>
               <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
+                onClick={handleLogout}
+                className="flex items-center gap-2 text-gray-700 hover:text-gray-900"
               >
-                Previous
-              </button>
-              <span className="px-4 py-2">
-                Page {page} of {totalPages}
-              </span>
-              <button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
-              >
-                Next
+                <LogOut size={18} />
+                <span>Logout</span>
               </button>
             </div>
-          )}
+          </div>
         </div>
-      )}
-      ;
+      </nav>
+
+      <div className="flex">
+        {/* Sidebar */}
+        <aside className="w-64 bg-white shadow-sm min-h-screen">
+          <nav className="mt-5 px-2">
+            <Link
+              href="/admin/dashboard"
+              className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg mb-1 text-gray-700 hover:bg-gray-50"
+            >
+              <Package size={18} />
+              <span>Dashboard</span>
+            </Link>
+
+            <Link
+              href="/admin/orders"
+              className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg mb-1 text-gray-700 hover:bg-gray-50"
+            >
+              <Package size={18} />
+              <span>Orders</span>
+            </Link>
+
+            <Link
+              href="/admin/products"
+              className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg mb-1 text-gray-700 hover:bg-gray-50"
+            >
+              <Package size={18} />
+              <span>Products</span>
+            </Link>
+
+            <Link
+              href="/admin/users"
+              className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg mb-1 text-gray-700 hover:bg-gray-50"
+            >
+              <Package size={18} />
+              <span>Users</span>
+            </Link>
+          </nav>
+        </aside>
+        <div className="flex-1">
+          <div className="container mx-auto p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h1 className="text-3xl font-semibold">Admin Product Management</h1>
+              <Dialog open={showForm} onOpenChange={setShowForm}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add New Product
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[600px]">
+                  <DialogHeader>
+                    <DialogTitle>
+                      {editingProduct ? "Edit Product" : "Create New Product"}
+                    </DialogTitle>
+                    <DialogDescription>
+                      Fill in the product details below. Click save when you're
+                      done.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <ScrollArea className="max-h-[80vh]">
+                    <ProductForm
+                      editingProduct={editingProduct}
+                      onSubmit={editingProduct ? editProduct : createProduct}
+                      onCancel={() => {
+                        setShowForm(false);
+                        setEditingProduct(null);
+                      }}
+                    />
+                  </ScrollArea>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            {error && (
+              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                {error}
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {products.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  onEdit={(product) => {
+                    setEditingProduct(product);
+                    setShowForm(true);
+                  }}
+                  onDelete={deleteProduct}
+                />
+              ))}
+            </div>
+
+            {totalPages > 1 && (
+              <div className="mt-6 flex justify-center gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                >
+                  Previous
+                </Button>
+                <span className="px-4 py-2">
+                  Page {page} of {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                >
+                  Next
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

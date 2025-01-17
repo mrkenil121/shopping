@@ -2,51 +2,61 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useAuth } from '../auth/AuthProvider'; // Import the AuthProvider hook
+import { useAuth } from '../auth/AuthProvider';
+import { ShoppingCart, Package } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const Navbar = () => {
-  const { user, logout } = useAuth(); // Access user and logout functionality
+  const { user, logout } = useAuth();
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    // Mark as client side rendering once component is mounted
     setIsClient(true);
   }, []);
 
-  // Ensure we only render once on the client
   if (!isClient) return null;
 
   return (
     <nav className="bg-gray-800 text-white">
       <div className="container mx-auto px-4 py-3 flex justify-between items-center">
-        {/* Logo */}
         <div className="text-xl font-bold">
           <Link href="/">MyApp</Link>
         </div>
 
-        {/* Navigation Links */}
         <div className="flex items-center space-x-6">
           <Link href="/" className="hover:text-gray-400">
             Home
           </Link>
-          <Link href="/about" className="hover:text-gray-400">
-            About
+          
+          <Link href="/orders" className="hover:text-gray-400 flex items-center gap-2">
+            <Package size={20} />
+            <span className="hidden sm:inline">Orders</span>
           </Link>
-          <Link href="/contact" className="hover:text-gray-400">
-            Contact
+          
+          <Link href="/products/cart" className="hover:text-gray-400 flex items-center gap-2">
+            <ShoppingCart size={20} />
+            <span className="hidden sm:inline">Cart</span>
           </Link>
 
-          {/* Authentication Links */}
           {user ? (
-            <div className="flex items-center space-x-4">
-              <span>Welcome, {user.name || 'User'}!</span>
-              <button
-                onClick={logout}
-                className="bg-red-600 px-4 py-2 rounded hover:bg-red-500"
-              >
-                Logout
-              </button>
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="text-white hover:text-gray-400">
+                  {user.name || 'User'}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-40">
+                <DropdownMenuItem onClick={logout} className="text-red-600">
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : (
             <div className="flex items-center space-x-4">
               <Link href="/login" className="hover:text-gray-400">

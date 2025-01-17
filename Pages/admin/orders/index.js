@@ -29,7 +29,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Package, Trash2, CheckCircle, Clock } from "lucide-react";
+import { Package, Trash2, CheckCircle, Clock, LogOut } from "lucide-react";
+import Link from 'next/link';
 import "@/app/globals.css";
 
 const AdminOrdersPage = () => {
@@ -106,6 +107,11 @@ const AdminOrdersPage = () => {
     }
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    router.push('/login');
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-96">
@@ -127,105 +133,172 @@ const AdminOrdersPage = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="text-2xl">Orders Management</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex justify-between items-center mb-4">
-            <div className="text-sm text-gray-500">
-              Total Orders: {orders.length}
+    <div className="min-h-screen bg-gray-100">
+      {/* Top Navigation Bar */}
+      <nav className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-16">
+            <div className="flex items-center">
+              <span className="text-xl font-bold text-gray-800">Admin Dashboard</span>
             </div>
-            <div className="flex gap-4">
-              <div className="flex items-center gap-2">
-                <Clock className="text-yellow-500" size={20} />
-                <span>Pending: {getStatusCount('pending')}</span>
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <button className="flex items-center gap-2 text-gray-700 hover:text-gray-900">
+                  <span>Admin</span>
+                </button>
               </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle className="text-green-500" size={20} />
-                <span>Processing: {getStatusCount('processing')}</span>
-              </div>
+              <button 
+                onClick={handleLogout}
+                className="flex items-center gap-2 text-gray-700 hover:text-gray-900"
+              >
+                <LogOut size={18} />
+                <span>Logout</span>
+              </button>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </nav>
 
-      <div className="bg-white rounded-lg shadow overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Order ID</TableHead>
-              <TableHead>Customer</TableHead>
-              <TableHead>Items</TableHead>
-              <TableHead>Total Amount</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {orders.map((order) => (
-              <TableRow key={order.id}>
-                <TableCell>#{order.id}</TableCell>
-                <TableCell>{order.user.name}</TableCell>
-                <TableCell>
+      <div className="flex">
+        {/* Sidebar */}
+        <aside className="w-64 bg-white shadow-sm min-h-screen">
+          <nav className="mt-5 px-2">
+            <Link 
+              href="/admin/dashboard" 
+              className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg mb-1 text-gray-700 hover:bg-gray-50"
+            >
+              <Package size={18} />
+              <span>Dashboard</span>
+            </Link>
+
+            <Link 
+              href="/admin/orders" 
+              className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg mb-1 text-gray-700 hover:bg-gray-50"
+            >
+              <Package size={18} />
+              <span>Orders</span>
+            </Link>
+
+            <Link 
+              href="/admin/products" 
+              className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg mb-1 text-gray-700 hover:bg-gray-50"
+            >
+              <Package size={18} />
+              <span>Products</span>
+            </Link>
+
+            <Link 
+              href="/admin/users" 
+              className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg mb-1 text-gray-700 hover:bg-gray-50"
+            >
+              <Package size={18} />
+              <span>Users</span>
+            </Link>
+          </nav>
+        </aside>
+
+        {/* Main Content */}
+        <div className="container mx-auto px-4 py-8">
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="text-2xl">Orders Management</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex justify-between items-center mb-4">
+                <div className="text-sm text-gray-500">
+                  Total Orders: {orders.length}
+                </div>
+                <div className="flex gap-4">
                   <div className="flex items-center gap-2">
-                    <Package size={16} />
-                    <span>{order.orderItems.length}</span>
+                    <Clock className="text-yellow-500" size={20} />
+                    <span>Pending: {getStatusCount('pending')}</span>
                   </div>
-                </TableCell>
-                <TableCell>₹{order.totalAmount.toFixed(2)}</TableCell>
-                <TableCell>
-                  <Select
-                    defaultValue={order.status.toLowerCase()}
-                    onValueChange={(value) => handleStatusChange(order.id, value)}
-                  >
-                    <SelectTrigger className="w-[120px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="processing">Processing</SelectItem>
-                      <SelectItem value="shipped">Shipped</SelectItem>
-                      <SelectItem value="delivered">Delivered</SelectItem>
-                      <SelectItem value="cancelled">Cancelled</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </TableCell>
-                <TableCell>
-                  {new Date(order.createdAt).toLocaleDateString()}
-                </TableCell>
-                <TableCell>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="destructive" size="sm">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Order</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Are you sure you want to delete order #{order.id}? This action cannot be undone.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={() => handleDeleteOrder(order.id)}
-                          className="bg-red-500 hover:bg-red-600"
-                        >
-                          Delete
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="text-green-500" size={20} />
+                    <span>Processing: {getStatusCount('processing')}</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="bg-white rounded-lg shadow overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Order ID</TableHead>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Items</TableHead>
+                  <TableHead>Total Amount</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {orders.map((order) => (
+                  <TableRow key={order.id}>
+                    <TableCell>#{order.id}</TableCell>
+                    <TableCell>{order.user.name}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Package size={16} />
+                        <span>{order.orderItems.length}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>₹{order.totalAmount.toFixed(2)}</TableCell>
+                    <TableCell>
+                      <Select
+                        defaultValue={order.status.toLowerCase()}
+                        onValueChange={(value) => handleStatusChange(order.id, value)}
+                      >
+                        <SelectTrigger className="w-[120px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pending">Pending</SelectItem>
+                          <SelectItem value="processing">Processing</SelectItem>
+                          <SelectItem value="shipped">Shipped</SelectItem>
+                          <SelectItem value="delivered">Delivered</SelectItem>
+                          <SelectItem value="cancelled">Cancelled</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell>
+                      {new Date(order.createdAt).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="destructive" size="sm">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Order</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete order #{order.id}? This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDeleteOrder(order.id)}
+                              className="bg-red-500 hover:bg-red-600"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
       </div>
     </div>
   );

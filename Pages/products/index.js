@@ -1,26 +1,166 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import Link from "next/link";
-import { useRouter } from "next/router";
-import { Loader2 } from "lucide-react";
+import { Loader2, Search, ShoppingCart, ChevronLeft, ChevronRight } from "lucide-react";
+import { 
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/components/ui/alert";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useRouter } from "next/compat/router";
+import Navbar from "@/components/layout/Navbar";
 import "@/app/globals.css";
 
+const ProductCard = ({ product, onAddToCart, isLoading, quantity, onUpdateQuantity }) => {
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  const nextImage = (e) => {
+    e.stopPropagation();
+    if (product.images && product.images.length > 0) {
+      setCurrentImageIndex((prev) => 
+        prev === product.images.length - 1 ? 0 : prev + 1
+      );
+    }
+  };
+
+  const prevImage = (e) => {
+    e.stopPropagation();
+    if (product.images && product.images.length > 0) {
+      setCurrentImageIndex((prev) => 
+        prev === 0 ? product.images.length - 1 : prev - 1
+      );
+    }
+  };
+
+  return (
+   
+    <Card className="relative group">
+      <CardHeader className="p-0">
+        <div className="relative h-48">
+          {product.images && product.images.length > 0 ? (
+            <>
+              <img
+                src={product.images[currentImageIndex]}
+                alt={`${product.name} - Image ${currentImageIndex + 1}`}
+                className="w-full h-48 object-cover rounded-t-lg"
+              />
+              {product.images.length > 1 && (
+                <>
+                  <button
+                    onClick={prevImage}
+                    className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    aria-label="Previous image"
+                  >
+                    <ChevronLeft className="h-6 w-6" />
+                  </button>
+                  <button
+                    onClick={nextImage}
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    aria-label="Next image"
+                  >
+                    <ChevronRight className="h-6 w-6" />
+                  </button>
+                  <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex gap-1">
+                    {product.images.map((_, index) => (
+                      <div
+                        key={index}
+                        className={`h-1.5 w-1.5 rounded-full transition-all ${
+                          index === currentImageIndex 
+                            ? 'bg-white w-3' 
+                            : 'bg-white/50'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+            </>
+          ) : (
+            <div className="w-full h-48 bg-muted flex items-center justify-center rounded-t-lg">
+              No Image
+            </div>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="p-4">
+        <CardTitle className="text-lg mb-2">{product.name}</CardTitle>
+        <p className="text-xl font-bold text-primary">
+          ${product.salesPrice.toFixed(2)}
+        </p>
+      </CardContent>
+      <CardFooter className="p-4 pt-0">
+        {isLoading ? (
+          <Button disabled className="w-full">
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            {quantity ? 'Updating...' : 'Adding...'}
+          </Button>
+        ) : quantity ? (
+          <div className="flex items-center justify-between w-full border rounded-md">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => onUpdateQuantity(product.id, Math.max(0, quantity - 1))}
+            >
+              -
+            </Button>
+            <span className="text-sm font-medium">{quantity} in cart</span>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => onUpdateQuantity(product.id, quantity + 1)}
+            >
+              +
+            </Button>
+          </div>
+        ) : (
+          <Button 
+            className="w-full" 
+            onClick={() => onAddToCart(product)}
+          >
+            <ShoppingCart className="mr-2 h-4 w-4" />
+            Add to Cart
+          </Button>
+        )}
+      </CardFooter>
+    </Card>
+  );
+};
+
 const ProductsPage = () => {
+  const [category, setCategory] = useState("all");
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [cartLoading, setCartLoading] = useState(true);
-  const [category, setCategory] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [addingToCart, setAddingToCart] = useState({});
-  const [cartItems, setCartItems] = useState({});  // Store cart quantities by productId
+  const [cartItems, setCartItems] = useState({});
   const [error, setError] = useState(null);
   const router = useRouter();
 
-  // Fetch products from API
+  // Existing fetch functions remain the same
   const fetchProducts = async () => {
     setLoading(true);
     try {
-      const response = await axios.get("/api/products/filter?category=" + category);
+      const url = (category === "all") 
+        ? "/api/products/filter?category=" 
+        : `/api/products/filter?category=${category}`;
+      const response = await axios.get(url);
       setProducts(response.data.products);
     } catch (error) {
       console.error("Error fetching products:", error);
@@ -30,7 +170,6 @@ const ProductsPage = () => {
     }
   };
 
-  // Fetch cart items to get current quantities
   const fetchCartItems = async () => {
     const token = localStorage.getItem("user");
     if (!token) {
@@ -40,12 +179,8 @@ const ProductsPage = () => {
 
     try {
       const response = await axios.get("/api/cart", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
-
-      // Create a map of productId to quantity
       const cartMap = {};
       response.data.cartItems.forEach(item => {
         cartMap[item.productId] = item.quantity;
@@ -63,13 +198,11 @@ const ProductsPage = () => {
     fetchCartItems();
   }, [category]);
 
-  // Add to cart function
   const addToCart = async (product) => {
     const token = localStorage.getItem("user");
     
     if (!token) {
-      router.push(`/login?redirect=/products`);
-      return;
+      router.push('/login');
     }
 
     setAddingToCart(prev => ({ ...prev, [product.id]: true }));
@@ -78,34 +211,22 @@ const ProductsPage = () => {
     try {
       await axios.post(
         "/api/cart",
-        {
-          productId: product.id,
-          quantity: 1,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        { productId: product.id, quantity: 1 },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-
-      // Update cart items after adding
       await fetchCartItems();
-      setError(null);
     } catch (err) {
-      console.error("Error adding to cart:", err);
       setError(err.response?.data?.message || "Failed to add item to cart");
     } finally {
       setAddingToCart(prev => ({ ...prev, [product.id]: false }));
     }
   };
 
-  // Update quantity function
   const updateQuantity = async (productId, newQuantity) => {
     const token = localStorage.getItem("user");
     
     if (!token) {
-      router.push(`/login?redirect=/products`);
+      router.push(`/login`);
       return;
     }
 
@@ -114,149 +235,100 @@ const ProductsPage = () => {
     try {
       await axios.post(
         "/api/cart",
-        {
-          productId,
-          quantity: newQuantity,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        { productId, quantity: newQuantity },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-
-      // Update cart items after quantity change
       await fetchCartItems();
     } catch (err) {
-      console.error("Error updating quantity:", err);
       setError(err.response?.data?.message || "Failed to update quantity");
     } finally {
       setAddingToCart(prev => ({ ...prev, [productId]: false }));
     }
   };
 
-  // Filter products based on search query
   const filteredProducts = products.filter((product) =>
     product.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const renderAddToCartButton = (product) => {
-    const quantity = cartItems[product.id];
-    const isLoading = addingToCart[product.id];
-
-    if (isLoading) {
-      return (
-        <button
-          className="mt-2 px-4 py-2 bg-blue-600 text-white rounded w-full opacity-75 cursor-not-allowed"
-          disabled
-        >
-          <span className="flex items-center justify-center">
-            <Loader2 className="animate-spin -ml-1 mr-3 h-5 w-5" />
-            {quantity ? 'Updating...' : 'Adding...'}
-          </span>
-        </button>
-      );
-    }
-
-    if (quantity) {
-      return (
-        <div className="mt-2 flex items-center justify-between w-full border rounded">
-          <button
-            className="px-4 py-2 text-blue-600 hover:bg-blue-50"
-            onClick={() => updateQuantity(product.id, Math.max(0, quantity - 1))}
-          >
-            -
-          </button>
-          <span className="text-gray-700">{quantity} in cart</span>
-          <button
-            className="px-4 py-2 text-blue-600 hover:bg-blue-50"
-            onClick={() => updateQuantity(product.id, quantity + 1)}
-          >
-            +
-          </button>
-        </div>
-      );
-    }
-
-    return (
-      <button
-        className="mt-2 px-4 py-2 bg-blue-600 text-white rounded w-full hover:bg-blue-700"
-        onClick={() => addToCart(product)}
-      >
-        Add to Cart
-      </button>
-    );
-  };
-
   return (
+    <div>
     <div className="container mx-auto p-6">
-      <h1 className="text-3xl font-semibold mb-4">Product Listings</h1>
-
-      {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-          {error}
+      <div className="flex flex-col gap-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold tracking-tight">Products</h1>
         </div>
-      )}
 
-      {/* Search and Filter Options */}
-      <div className="flex flex-col md:flex-row justify-between items-center mb-6">
-        <input
-          type="text"
-          placeholder="Search products..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full md:w-1/3 p-2 border rounded mb-4 md:mb-0"
-        />
+        {error && (
+          <Alert variant="destructive">
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
 
-        <select
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          className="w-full md:w-1/3 p-2 border rounded"
-        >
-          <option value="">All Categories</option>
-          <option value="electronics">Electronics</option>
-          <option value="fashion">Fashion</option>
-          <option value="books">Books</option>
-          <option value="home-appliances">Home Appliances</option>
-        </select>
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search products..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-8"
+            />
+          </div>
+          <Select
+            value={category}
+            onValueChange={setCategory}
+          >
+            <SelectTrigger className="w-full md:w-[200px]">
+              <SelectValue placeholder="Category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              <SelectItem value="electronics">Electronics</SelectItem>
+              <SelectItem value="fashion">Fashion</SelectItem>
+              <SelectItem value="books">Books</SelectItem>
+              <SelectItem value="home-appliances">Home Appliances</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {loading || cartLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-4 lg:grid-cols-5 gap-6">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <Card key={i}>
+                <CardContent className="p-4">
+                  <Skeleton className="h-48 w-full mb-4" />
+                  <Skeleton className="h-4 w-2/3 mb-2" />
+                  <Skeleton className="h-4 w-1/3" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : filteredProducts.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredProducts.map((product) => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                onAddToCart={addToCart}
+                isLoading={addingToCart[product.id]}
+                quantity={cartItems[product.id]}
+                onUpdateQuantity={updateQuantity}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <h3 className="text-lg font-medium text-muted-foreground">
+              No products found
+            </h3>
+            <p className="text-sm text-muted-foreground mt-1">
+              Try adjusting your search or filter to find what you're looking for.
+            </p>
+          </div>
+        )}
       </div>
-
-      {/* Products Grid */}
-      {loading || cartLoading ? (
-        <div className="flex justify-center items-center min-h-[200px]">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-        </div>
-      ) : filteredProducts.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredProducts.map((product) => (
-            <div
-              key={product.id}
-              className="bg-white shadow rounded p-4 flex flex-col items-center"
-            >
-              <Link href={`/products/${product.id}`} className="w-full">
-                {product.images && product.images.length > 0 ? (
-                  <img
-                    src={product.images[0]}
-                    alt={product.name}
-                    className="w-full h-48 object-cover mb-4"
-                  />
-                ) : (
-                  <div className="w-full h-48 bg-gray-200 flex items-center justify-center mb-4">
-                    No Image
-                  </div>
-                )}
-                <h2 className="text-lg font-semibold">{product.name}</h2>
-                <p className="text-gray-600">${product.salesPrice.toFixed(2)}</p>
-              </Link>
-              {renderAddToCartButton(product)}
-            </div>
-          ))}
-        </div>
-      ) : (
-        <p className="text-center text-gray-600">
-          No products found for the selected category or search query.
-        </p>
-      )}
+    </div>
     </div>
   );
 };

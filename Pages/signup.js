@@ -1,27 +1,27 @@
+// pages/signup.js
 import { useState } from 'react';
 import { useRouter } from 'next/router';
-import SignUpForm from '../components/auth/SignUpForm';
+import { SignUpForm } from '../components/auth/AuthForms';
 
-const Signup = () => {
+const SignupPage = () => {
   const router = useRouter();
   const [error, setError] = useState(null);
 
   const handleSignUp = async (values) => {
-    const { name, email, password } = values;
-
     try {
       const res = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify(values),
       });
 
+      const data = await res.json();
+
       if (res.ok) {
-        router.push('/login'); // Redirect to login page on success
+        router.push('/login');
       } else {
-        const data = await res.json();
         setError(data.message || 'Something went wrong');
       }
     } catch (error) {
@@ -29,11 +29,7 @@ const Signup = () => {
     }
   };
 
-  return (
-    <div className="max-w-md mx-auto mt-10 p-4 bg-white rounded-lg shadow-md">
-      <SignUpForm onSubmit={handleSignUp} error={error} />
-    </div>
-  );
+  return <SignUpForm onSubmit={handleSignUp} error={error} />;
 };
 
-export default Signup;
+export default SignupPage;

@@ -1,8 +1,8 @@
+// pages/login.js
 import { useState } from 'react';
-import LoginForm from '../components/auth/LoginForm';
 import { useRouter } from 'next/router';
 import { jwtDecode } from 'jwt-decode';
-import "../app/globals.css";
+import { LoginForm } from '../components/auth/AuthForms';
 
 const LoginPage = () => {
   const [errorMessage, setErrorMessage] = useState('');
@@ -10,8 +10,6 @@ const LoginPage = () => {
 
   const handleLoginSubmit = async (values) => {
     const { email, password } = values;
-
-    // Reset any previous error message
     setErrorMessage('');
 
     try {
@@ -21,27 +19,19 @@ const LoginPage = () => {
         body: JSON.stringify({ email, password }),
       });
 
-      const data = await response.json(); // Only call json() once
+      const data = await response.json();
 
       if (response.ok) {
-        // Decode the JWT token to get user info (including role)
         const decodedToken = jwtDecode(data.token);
+        localStorage.setItem('user', data.token);
 
-      const userData = {
-        id: decodedToken.id,
-        email: decodedToken.email,
-        name: decodedToken.name,
-        role: decodedToken.role,
-        decodedToken,
-      };
-
-      localStorage.setItem('user', data.token); // Store the user data in localStorage
-      // setUser(userData); // Update user state
-
-        // Redirect to profile or dashboard after successful login
-        router.push('/');
+        // Redirect based on user role
+        if (decodedToken.role === 'admin') {
+          router.push('/admin/dashboard');
+        } else {
+          router.push('/products');
+        }
       } else {
-        // Set error message only if the login failed
         setErrorMessage(data.message || 'Login failed. Please try again.');
       }
     } catch (error) {
@@ -50,11 +40,7 @@ const LoginPage = () => {
     }
   };
 
-  return (
-    <div>
-      <LoginForm onSubmit={handleLoginSubmit} errorMessage={errorMessage} />
-    </div>
-  );
+  return <LoginForm onSubmit={handleLoginSubmit} errorMessage={errorMessage} />;
 };
 
 export default LoginPage;
