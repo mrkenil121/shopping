@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { useRouter } from 'next/router';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Package, Clock, CheckCircle } from "lucide-react";
+import "@/app/globals.css"
 
 const OrdersPage = () => {
+  const router = useRouter();
   const [orders, setOrders] = useState({
     pending: [],
     confirmed: []
@@ -11,20 +15,29 @@ const OrdersPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch orders from the API
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        // Replace with your actual API endpoint
-        const response = await fetch('/api/orders');
-        const data = await response.json();
+        // Get token from localStorage or your auth management system
+        const token = localStorage.getItem('user');
         
-        // Split orders into pending and confirmed
-        const categorizedOrders = data.reduce((acc, order) => {
-          if (order.status === 'pending') {
-            acc.pending.push(order);
-          } else if (order.status === 'confirmed') {
-            acc.confirmed.push(order);
+        if (!token) {
+          // Redirect to login if no token
+          router.push('/login');
+          return;
+        }
+
+        const response = await axios.get("/api/orders", {
+          headers: {
+            Authorization: `Bearer ${token}`
+          },
+        });
+        
+        // Categorize orders
+        const categorizedOrders = response.data.reduce((acc, order) => {
+          const status = order.status.toLowerCase();
+          if (status === 'pending' || status === 'confirmed') {
+            acc[status].push(order);
           }
           return acc;
         }, { pending: [], confirmed: [] });
@@ -32,13 +45,23 @@ const OrdersPage = () => {
         setOrders(categorizedOrders);
         setLoading(false);
       } catch (err) {
-        setError('Failed to fetch orders');
+        console.error('Error fetching orders:', err);
+        const errorMessage = err.response?.data?.error || 'Failed to fetch orders';
+        setError(errorMessage);
+        
+        // Handle unauthorized error
+        if (err.response?.status === 401) {
+          localStorage.removeItem('token'); // Clear invalid token
+          router.push('/login');
+        }
+        
         setLoading(false);
       }
     };
 
     fetchOrders();
-  }, []);
+  }, [router]);
+
 
   const OrderCard = ({ order }) => (
     <Card className="mb-4">

@@ -218,7 +218,20 @@ export default async function handler(req, res) {
         // Return updated cart items
         const newCart = await prisma.cart.findUnique({
           where: { userId },
-          include: cartInclude,
+          include: {
+            cartItems: {
+              include: {
+                product: {
+                  select: {
+                    id: true,
+                    name: true,
+                    images: true,
+                    salesPrice: true,
+                  },
+                },
+              },
+            },
+          },
         });
 
         return res.status(201).json({

@@ -1,32 +1,52 @@
 import { PrismaClient } from '@prisma/client';
-import { NextResponse } from 'next/server';
-import jwt from 'jsonwebtoken';  // Add this import
+import jwt from 'jsonwebtoken';
+import dotenv from 'dotenv';
+dotenv.config();
 
 const prisma = new PrismaClient();
 
-// GET /api/orders - Fetch all orders for the current user
-export async function GET(req) {
+// Add JWT verification middleware
+const verifyToken = (token, secret) => {
   try {
-    const token = req.headers.get('authorization')?.replace("Bearer ", "");
+    if (!token) return null;
+    return jwt.verify(token, secret);
+  } catch (error) {
+    console.error('Token verification failed:', error);
+    return null;
+  }
+};
 
-    if (!token) {
-      return NextResponse.json(
-        { error: 'Token not provided' },
-        { status: 401 }
-      );
-    }
+export default async function handler(req, res) {
+  // Get and verify token first
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  
+  if (!token) {
+    return res.status(401).json({ error: 'Authentication token is required' });
+  }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
-    if (!decoded || !decoded.id) {
-      return NextResponse.json(
-        { error: 'Invalid token' },
-        { status: 401 }
-      );
-    }
-    
+  const decoded = verifyToken(token, process.env.JWT_SECRET);
+  
+  if (!decoded) {
+    return res.status(401).json({ error: 'Invalid or expired token' });
+  }
+
+  // Handle different HTTP methods
+  switch (req.method) {
+    case 'GET':
+      return getOrders(req, res, decoded);
+    case 'POST':
+      return createOrder(req, res, decoded);
+    case 'PATCH':
+      return updateOrder(req, res, decoded);
+    default:
+      return res.status(405).json({ error: 'Method not allowed' });
+  }
+}
+
+async function getOrders(req, res, decoded) {
+  try {
     const userId = decoded.id;
-
+    
     const orders = await prisma.order.findMany({
       where: {
         userId: parseInt(userId),
@@ -39,9 +59,9 @@ export async function GET(req) {
                 id: true,
                 name: true,
                 images: true,
-                salesPrice: true,  // Added to match schema
-                wsCode: true,      // Added to match schema
-                packageSize: true  // Added to match schema
+                salesPrice: true,
+                wsCode: true,
+                packageSize: true
               },
             },
           },
@@ -52,53 +72,37 @@ export async function GET(req) {
       },
     });
 
-    return NextResponse.json(orders);
-
+    return res.status(200).json(orders);
   } catch (error) {
     console.error('Failed to fetch orders:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch orders' },
-      { status: 500 }
-    );
+    return res.status(500).json({ error: 'Failed to fetch orders' });
   }
 }
 
-// POST /api/orders - Create a new order
-
-export async function POST(req) {
+async function createOrder(req, res, decoded) {
   try {
-    const token = req.headers.get('authorization')?.replace("Bearer ", "");
-
-    if (!token) {
-      return NextResponse.json(
-        { error: 'Token not provided' },
-        { status: 401 }
-      );
-    }
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
-    if (!decoded || !decoded.id) {
-      return NextResponse.json(
-        { error: 'Invalid token' },
-        { status: 401 }
-      );
-    }
-    
     const userId = decoded.id;
-    const { orderItems } = await req.json();
+    const { orderItems } = req.body;
+
+    if (!orderItems || !Array.isArray(orderItems) || orderItems.length === 0) {
+      return res.status(400).json({ error: 'Invalid order items' });
+    }
 
     const order = await prisma.$transaction(async (tx) => {
-      // Calculate total using the product's salesPrice from the database
       const itemsWithPrices = await Promise.all(
         orderItems.map(async (item) => {
           const product = await tx.product.findUnique({
             where: { id: item.productId },
             select: { salesPrice: true }
           });
+          
+          if (!product) {
+            throw new Error(`Product not found: ${item.productId}`);
+          }
+          
           return {
             ...item,
-            price: product.salesPrice // Use the current price from the database
+            price: product.salesPrice
           };
         })
       );
@@ -139,7 +143,7 @@ export async function POST(req) {
         },
       });
 
-      // Clear the user's cart
+      // Clear the cart after successful order creation
       await tx.cart.update({
         where: { userId: parseInt(userId) },
         data: {
@@ -152,88 +156,12 @@ export async function POST(req) {
       return newOrder;
     });
 
-    return NextResponse.json(order);
-
+    return res.status(200).json(order);
   } catch (error) {
     console.error('Failed to create order:', error);
-    return NextResponse.json(
-      { error: 'Failed to create order' },
-      { status: 500 }
-    );
-  }
-}
-// PATCH /api/orders/:id - Update order status
-export async function PATCH(req, { params }) {
-  try {
-
-    const token = req.headers.authorization?.replace("Bearer ", "");
-
-    if (!token) {
-      return res.status(401).json({ message: "Token not provided" });
-    }
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
-    if (!decoded || !decoded.id) {
-      return res.status(401).json({ message: "Invalid token" });
-    }
-    
-    const userId = decoded.id;
-
-    const { status } = await req.json();
-    
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    // Verify the order belongs to the user
-    const order = await prisma.order.findFirst({
-      where: {
-        id: parseInt(params.id),
-        userId: parseInt(userId),
-      },
+    return res.status(500).json({ 
+      error: 'Failed to create order',
+      details: error.message 
     });
-
-    if (!order) {
-      return NextResponse.json(
-        { error: 'Order not found' },
-        { status: 404 }
-      );
-    }
-
-    // Update the order status
-    const updatedOrder = await prisma.order.update({
-      where: {
-        id: parseInt(params.id),
-      },
-      data: {
-        status,
-      },
-      include: {
-        orderItems: {
-          include: {
-            product: {
-              select: {
-                id: true,
-                name: true,
-                images: true,
-              },
-            },
-          },
-        },
-      },
-    });
-
-    return NextResponse.json(updatedOrder);
-
-  } catch (error) {
-    console.error('Failed to update order:', error);
-    return NextResponse.json(
-      { error: 'Failed to update order' },
-      { status: 500 }
-    );
   }
 }

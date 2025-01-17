@@ -1,162 +1,234 @@
-import { useState, useEffect } from "react";
-import { useRouter } from "next/router";
-import { getSession } from "next-auth/react";
-import { format } from "date-fns";
-import Link from "next/link";
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { useRouter } from 'next/router';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Package, Trash2, CheckCircle, Clock } from "lucide-react";
+import "@/app/globals.css";
 
-// Utility functions to interact with the API
-const fetchOrders = async () => {
-  try {
-    const res = await fetch(`/api/admin/orders`); // Fetch all orders for admin
-    if (!res.ok) {
-      throw new Error("Failed to fetch orders");
-    }
-    const data = await res.json();
-    return data.orders;
-  } catch (error) {
-    console.error("Error fetching orders:", error);
-    return [];
-  }
-};
-
-const updateOrderStatus = async (orderId, status) => {
-  try {
-    const res = await fetch(`/api/admin/orders`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ id: orderId, status }),
-    });
-    const data = await res.json();
-    return data.order;
-  } catch (error) {
-    console.error("Error updating order:", error);
-  }
-};
-
-const deleteOrder = async (orderId) => {
-  try {
-    const res = await fetch(`/api/admin/orders?id=${orderId}`, {
-      method: "DELETE",
-    });
-    return res.status === 200;
-  } catch (error) {
-    console.error("Error deleting order:", error);
-    return false;
-  }
-};
-
-const AdminOrders = () => {
+const AdminOrdersPage = () => {
+  const router = useRouter();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const router = useRouter();
+  const [selectedOrder, setSelectedOrder] = useState(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      const session = await getSession();
-      if (!session || session.user.role !== "admin") {
-        router.push("/auth/signin"); // Redirect to login if not authenticated or not admin
+    fetchOrders();
+  }, []);
+
+  const fetchOrders = async () => {
+    try {
+      const token = localStorage.getItem('user');
+      if (!token) {
+        router.push('/login');
         return;
       }
 
-      const orders = await fetchOrders();
-      setOrders(orders);
+      const response = await axios.get("/api/admin/orders", {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      
+      setOrders(response.data);
       setLoading(false);
-    };
-
-    fetchData();
-  }, [router]);
-
-  const handleConfirmOrder = async (orderId) => {
-    const updatedOrder = await updateOrderStatus(orderId, "confirmed");
-    if (updatedOrder) {
-      setOrders((prevOrders) =>
-        prevOrders.map((order) =>
-          order.id === orderId ? { ...order, status: "confirmed" } : order
-        )
-      );
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to fetch orders');
+      if (err.response?.status === 401) {
+        router.push('/login');
+      }
+      setLoading(false);
     }
   };
 
-  const handleDeleteOrder = async (orderId) => {
-    const success = await deleteOrder(orderId);
-    if (success) {
-      setOrders((prevOrders) => prevOrders.filter((order) => order.id !== orderId));
-    } else {
-      setError("Failed to delete order");
+  const handleStatusChange = async (id, newStatus) => {
+    try {
+      const token = localStorage.getItem('user');
+      
+      await axios.put(`/api/admin/orders?id=${id}`, 
+        { status: newStatus.toUpperCase() }, // Convert to uppercase to match backend
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+      
+      // Update local state
+      setOrders(orders.map(order => 
+        order.id === id ? { ...order, status: newStatus } : order
+      ));
+    } catch (error) {
+      console.error('Failed to update order status:', error);
+    }
+  };
+
+  const handleDeleteOrder = async (id) => {
+    try {
+      const token = localStorage.getItem('user');
+      await axios.delete(`/api/admin/orders?id=${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+     
+      // Remove from local state
+      setOrders(orders.filter(order => order.id !== id));
+    } catch (error) {
+      console.error('Failed to delete order:', error);
     }
   };
 
   if (loading) {
-    return <p>Loading orders...</p>;
+    return (
+      <div className="flex justify-center items-center h-96">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+      </div>
+    );
   }
 
   if (error) {
-    return <p className="text-red-500">{error}</p>;
+    return (
+      <div className="flex justify-center items-center h-96">
+        <div className="text-red-500">{error}</div>
+      </div>
+    );
   }
 
-  if (orders.length === 0) {
-    return <p>No orders to manage.</p>;
-  }
+  const getStatusCount = (status) => {
+    return orders.filter(o => o.status.toLowerCase() === status).length;
+  };
 
   return (
-    <div className="container mx-auto p-6">
-      <h1 className="text-3xl font-semibold mb-6">Manage Orders</h1>
-      <div className="bg-white p-6 rounded shadow-md">
-        <table className="min-w-full table-auto">
-          <thead>
-            <tr>
-              <th className="px-4 py-2 border-b">Order ID</th>
-              <th className="px-4 py-2 border-b">Date</th>
-              <th className="px-4 py-2 border-b">Total Amount</th>
-              <th className="px-4 py-2 border-b">Status</th>
-              <th className="px-4 py-2 border-b">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
+    <div className="container mx-auto px-4 py-8">
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="text-2xl">Orders Management</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex justify-between items-center mb-4">
+            <div className="text-sm text-gray-500">
+              Total Orders: {orders.length}
+            </div>
+            <div className="flex gap-4">
+              <div className="flex items-center gap-2">
+                <Clock className="text-yellow-500" size={20} />
+                <span>Pending: {getStatusCount('pending')}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle className="text-green-500" size={20} />
+                <span>Processing: {getStatusCount('processing')}</span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="bg-white rounded-lg shadow overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Order ID</TableHead>
+              <TableHead>Customer</TableHead>
+              <TableHead>Items</TableHead>
+              <TableHead>Total Amount</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Date</TableHead>
+              <TableHead>Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {orders.map((order) => (
-              <tr key={order.id}>
-                <td className="px-4 py-2 border-b">{order.id}</td>
-                <td className="px-4 py-2 border-b">
-                  {format(new Date(order.createdAt), "MMMM dd, yyyy")}
-                </td>
-                <td className="px-4 py-2 border-b">${order.totalAmount}</td>
-                <td className="px-4 py-2 border-b">
-                  <span
-                    className={`${
-                      order.status === "confirmed"
-                        ? "text-green-500"
-                        : "text-yellow-500"
-                    }`}
+              <TableRow key={order.id}>
+                <TableCell>#{order.id}</TableCell>
+                <TableCell>{order.user.name}</TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <Package size={16} />
+                    <span>{order.orderItems.length}</span>
+                  </div>
+                </TableCell>
+                <TableCell>₹{order.totalAmount.toFixed(2)}</TableCell>
+                <TableCell>
+                  <Select
+                    defaultValue={order.status.toLowerCase()}
+                    onValueChange={(value) => handleStatusChange(order.id, value)}
                   >
-                    {order.status}
-                  </span>
-                </td>
-                <td className="px-4 py-2 border-b">
-                  {order.status !== "confirmed" && (
-                    <button
-                      onClick={() => handleConfirmOrder(order.id)}
-                      className="text-green-500 hover:underline mr-2"
-                    >
-                      Confirm Order
-                    </button>
-                  )}
-                  <button
-                    onClick={() => handleDeleteOrder(order.id)}
-                    className="text-red-500 hover:underline"
-                  >
-                    Delete Order
-                  </button>
-                </td>
-              </tr>
+                    <SelectTrigger className="w-[120px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="processing">Processing</SelectItem>
+                      <SelectItem value="shipped">Shipped</SelectItem>
+                      <SelectItem value="delivered">Delivered</SelectItem>
+                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </TableCell>
+                <TableCell>
+                  {new Date(order.createdAt).toLocaleDateString()}
+                </TableCell>
+                <TableCell>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive" size="sm">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Order</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to delete order #{order.id}? This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => handleDeleteOrder(order.id)}
+                          className="bg-red-500 hover:bg-red-600"
+                        >
+                          Delete
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
     </div>
   );
 };
 
-export default AdminOrders;
+export default AdminOrdersPage;

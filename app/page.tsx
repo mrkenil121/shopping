@@ -1,5 +1,5 @@
 import AdminLayout from '../components/layout/AdminLayout';
-import CustomerLayout from '../components/layout/CustomerLayout';
+import CustomerLayout from '../components/layout/Layout';
 import OrderList from '../components/Orders/OrderList';
 import ProductCard from '../components/Products/ProductCard';
 import ProductList from '../components/Products/ProductList';
