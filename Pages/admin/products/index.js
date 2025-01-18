@@ -8,6 +8,7 @@ import {
   LogOut,
   Plus,
   UserCircle,
+  Pencil, Trash2, ChevronLeft, ChevronRight
 } from "lucide-react";
 
 import { validateProductForm } from "../../../utils/validators";
@@ -57,7 +58,7 @@ const ProductCard = ({ product, onEdit, onDelete }) => {
 
   return (
     <Card className="overflow-hidden">
-      <div className="relative w-full h-48">
+      <div className="relative w-full h-64">
         {product.images && product.images.length > 0 ? (
           <>
             <img
@@ -74,9 +75,9 @@ const ProductCard = ({ product, onEdit, onDelete }) => {
                     e.preventDefault();
                     previousImage();
                   }}
-                  className="ml-2 bg-black/50 hover:bg-black/70"
+                  className="ml-2 bg-gray-500/50 hover:bg-gray-600/50"
                 >
-                  ←
+                  <ChevronLeft className="h-6 w-6 text-white" />
                 </Button>
                 <Button
                   variant="ghost"
@@ -85,13 +86,13 @@ const ProductCard = ({ product, onEdit, onDelete }) => {
                     e.preventDefault();
                     nextImage();
                   }}
-                  className="mr-2 bg-black/50 hover:bg-black/70"
+                  className="mr-2 bg-gray-500/50 hover:bg-gray-600/50"
                 >
-                  →
+                  <ChevronRight className="h-6 w-6 text-white" />
                 </Button>
               </div>
             )}
-            <div className="absolute bottom-2 right-2 bg-black/50 text-white px-2 py-1 rounded text-sm">
+            <div className="absolute bottom-2 right-2 bg-gray-500/50 text-white px-2 py-1 rounded text-sm">
               {currentImageIndex + 1} / {product.images.length}
             </div>
           </>
@@ -101,12 +102,12 @@ const ProductCard = ({ product, onEdit, onDelete }) => {
           </div>
         )}
       </div>
-      <CardHeader>
-        <CardTitle>{product.name}</CardTitle>
-        <CardDescription>Category: {product.category}</CardDescription>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-lg">{product.name}</CardTitle>
+        <p className="text-sm text-muted-foreground mt-0">Category: {product.category}</p>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-1">
+      <CardContent className="pb-4">
+        <div className="flex justify-between items-center">
           <p className="text-sm font-medium">Price: ₹{product.salesPrice}</p>
           <p className="text-sm text-muted-foreground">MRP: ₹{product.mrp}</p>
         </div>
@@ -117,6 +118,7 @@ const ProductCard = ({ product, onEdit, onDelete }) => {
           className="flex-1"
           variant="outline"
         >
+          <Pencil className="h-4 w-4 mr-2" />
           Edit
         </Button>
         <Button
@@ -124,6 +126,7 @@ const ProductCard = ({ product, onEdit, onDelete }) => {
           className="flex-1"
           variant="destructive"
         >
+          <Trash2 className="h-4 w-4 mr-2" />
           Delete
         </Button>
       </CardFooter>
