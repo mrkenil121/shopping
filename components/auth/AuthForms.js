@@ -1,8 +1,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
-import { jwtDecode } from "jwt-decode";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import "@/app/globals.css";
 
 // Login Form Component
@@ -97,8 +96,7 @@ const LoginForm = ({ onSubmit, errorMessage }) => {
   );
 };
 
-// Signup Form Component
-const SignUpForm = ({ onSubmit, error }) => {
+const SignUpForm = ({ onSubmit, error, isLoading }) => {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -108,12 +106,13 @@ const SignUpForm = ({ onSubmit, error }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordError, setPasswordError] = useState("");
+  const [showVerification, setShowVerification] = useState(false);
+  const [verificationCode, setVerificationCode] = useState("");
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
 
-    // Clear password error when either password field changes
     if (name === "password" || name === "confirmPassword") {
       setPasswordError("");
     }
@@ -122,16 +121,77 @@ const SignUpForm = ({ onSubmit, error }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    // Check if passwords match
     if (formData.password !== formData.confirmPassword) {
       setPasswordError("Passwords do not match");
       return;
     }
 
-    // Remove confirmPassword before submitting
     const { confirmPassword, ...submitData } = formData;
     onSubmit(submitData);
   };
+
+  if (showVerification) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-xl shadow-lg">
+          <div>
+            <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+              Verify Your Email
+            </h2>
+            <p className="mt-2 text-center text-sm text-gray-600">
+              We've sent a verification code to {formData.email}
+            </p>
+          </div>
+
+          <form className="mt-8 space-y-6" onSubmit={handleVerification}>
+            <div>
+              <input
+                type="text"
+                required
+                className="appearance-none rounded-lg relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                placeholder="Enter verification code"
+                value={verificationCode}
+                onChange={(e) => setVerificationCode(e.target.value)}
+                disabled={isLoading}
+              />
+            </div>
+
+            {error && (
+              <div className="text-red-500 text-sm text-center">{error}</div>
+            )}
+
+            <div>
+              <button
+                type="submit"
+                disabled={isLoading || !verificationCode}
+                className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoading ? (
+                  <div className="flex items-center">
+                    <Loader2 className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" />
+                    Verifying...
+                  </div>
+                ) : (
+                  'Verify Email'
+                )}
+              </button>
+            </div>
+
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={handleResendCode}
+                disabled={isLoading}
+                className="text-sm text-indigo-600 hover:text-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Didn't receive the code? Click to resend
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -165,6 +225,7 @@ const SignUpForm = ({ onSubmit, error }) => {
                 placeholder="Full Name"
                 value={formData.name}
                 onChange={handleChange}
+                disabled={isLoading}
               />
             </div>
             <div>
@@ -180,6 +241,7 @@ const SignUpForm = ({ onSubmit, error }) => {
                 placeholder="Email address"
                 value={formData.email}
                 onChange={handleChange}
+                disabled={isLoading}
               />
             </div>
             <div className="relative">
@@ -195,6 +257,7 @@ const SignUpForm = ({ onSubmit, error }) => {
                 placeholder="Password"
                 value={formData.password}
                 onChange={handleChange}
+                disabled={isLoading}
               />
               <button
                 type="button"
@@ -217,6 +280,7 @@ const SignUpForm = ({ onSubmit, error }) => {
                 placeholder="Confirm Password"
                 value={formData.confirmPassword}
                 onChange={handleChange}
+                disabled={isLoading}
               />
               <button
                 type="button"
@@ -241,9 +305,17 @@ const SignUpForm = ({ onSubmit, error }) => {
           <div>
             <button
               type="submit"
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              disabled={isLoading}
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Create Account
+              {isLoading ? (
+                <div className="flex items-center">
+                  <Loader2 className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" />
+                  Creating Account...
+                </div>
+              ) : (
+                'Create Account'
+              )}
             </button>
           </div>
         </form>

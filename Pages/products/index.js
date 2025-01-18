@@ -201,7 +201,7 @@ const ProductsPage = () => {
   const addToCart = async (product) => {
     const token = localStorage.getItem("user");
     
-    if (!token && router) {
+    if (!token) {
       router.push('/login');
       return; 
     }

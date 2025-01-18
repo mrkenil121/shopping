@@ -15,15 +15,16 @@ import {
 const Navbar = () => {
   const { user, logout } = useAuth();
   const [isClient, setIsClient] = useState(false);
-
+  
+  // Handle initial mounting and hydration
   useEffect(() => {
     setIsClient(true);
   }, []);
 
   if (!isClient) return null;
-
+  
   return (
-    <nav className="bg-gray-800 text-white">
+    <nav style={{zIndex:"1"}} className="bg-gray-800 text-white sticky top-0 w-full">
       <div className="container mx-auto px-4 py-3 flex justify-between items-center">
         <div className="text-xl font-bold">
           <Link href="/">MyApp</Link>

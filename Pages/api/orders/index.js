@@ -34,10 +34,8 @@ export default async function handler(req, res) {
   switch (req.method) {
     case 'GET':
       return getOrders(req, res, decoded);
-    case 'POST':
-      return createOrder(req, res, decoded);
-    case 'PATCH':
-      return updateOrder(req, res, decoded);
+    case 'DELETE':
+      return deleteOrder(req, res, decoded);
     default:
       return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -79,89 +77,49 @@ async function getOrders(req, res, decoded) {
   }
 }
 
-async function createOrder(req, res, decoded) {
+async function deleteOrder(req, res, decoded) {
+  const { id } = req.query;
+  const userId = decoded.id;
+
+  // Validate id
+  if (!id || isNaN(parseInt(id))) {
+    return res.status(400).json({ error: 'Invalid order ID' });
+  }
+
   try {
-    const userId = decoded.id;
-    const { orderItems } = req.body;
-
-    if (!orderItems || !Array.isArray(orderItems) || orderItems.length === 0) {
-      return res.status(400).json({ error: 'Invalid order items' });
-    }
-
-    const order = await prisma.$transaction(async (tx) => {
-      const itemsWithPrices = await Promise.all(
-        orderItems.map(async (item) => {
-          const product = await tx.product.findUnique({
-            where: { id: item.productId },
-            select: { salesPrice: true }
-          });
-          
-          if (!product) {
-            throw new Error(`Product not found: ${item.productId}`);
-          }
-          
-          return {
-            ...item,
-            price: product.salesPrice
-          };
-        })
-      );
-
-      const totalAmount = itemsWithPrices.reduce(
-        (sum, item) => sum + (item.quantity * item.price),
-        0
-      );
-
-      const newOrder = await tx.order.create({
-        data: {
-          userId: parseInt(userId),
-          totalAmount,
-          status: 'pending',
-          orderItems: {
-            create: itemsWithPrices.map(item => ({
-              productId: item.productId,
-              quantity: item.quantity,
-              price: item.price,
-            })),
-          },
-        },
-        include: {
-          orderItems: {
-            include: {
-              product: {
-                select: {
-                  id: true,
-                  name: true,
-                  images: true,
-                  salesPrice: true,
-                  wsCode: true,
-                  packageSize: true
-                },
-              },
-            },
-          },
-        },
+    // Begin transaction
+    const result = await prisma.$transaction(async (prisma) => {
+      // First check if order belongs to user
+      const order = await prisma.order.findFirst({
+        where: {
+          id: parseInt(id),
+          userId: parseInt(userId)
+        }
       });
 
-      // Clear the cart after successful order creation
-      await tx.cart.update({
-        where: { userId: parseInt(userId) },
-        data: {
-          cartItems: {
-            deleteMany: {},
-          },
-        },
+      if (!order) {
+        throw new Error('Order not found or unauthorized');
+      }
+
+      // Delete order items first due to foreign key constraints
+      await prisma.orderItem.deleteMany({
+        where: { orderId: parseInt(id) }
       });
 
-      return newOrder;
+      // Then delete the order
+      const deletedOrder = await prisma.order.delete({
+        where: { id: parseInt(id) }
+      });
+
+      return deletedOrder;
     });
 
-    return res.status(200).json(order);
+    return res.status(200).json({ message: 'Order deleted successfully', order: result });
   } catch (error) {
-    console.error('Failed to create order:', error);
-    return res.status(500).json({ 
-      error: 'Failed to create order',
-      details: error.message 
-    });
+    console.error('Failed to delete order:', error);
+    if (error.message === 'Order not found or unauthorized') {
+      return res.status(403).json({ error: error.message });
+    }
+    return res.status(500).json({ error: 'Failed to delete order' });
   }
 }

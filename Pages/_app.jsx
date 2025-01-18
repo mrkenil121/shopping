@@ -17,16 +17,19 @@ export default function MyApp({ Component, pageProps }) {
     "/admin/orders",
     "/admin/users",
     "/login",
-    "/signup"
+    "/signup",
+    "/verify"
   ];
 
   const shouldShowNavbar = !noNavbarRoutes.includes(router.pathname); // Use router.pathname to get the current route
 
   return (
     <AuthProvider>
-      <div className={inter.className}>
+      <div  className="{inter.className}">
         {shouldShowNavbar && <Navbar />}
+        <div style={{height:"100vh"}} classname="min-h-screen">
         <Component {...pageProps} />
+        </div>
         {shouldShowNavbar && <Footer />}
       </div>
     </AuthProvider>

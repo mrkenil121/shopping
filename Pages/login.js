@@ -29,7 +29,7 @@ const LoginPage = () => {
         if (decodedToken.role === 'admin') {
           router.push('/admin/dashboard');
         } else {
-          router.push('/products');
+          router.push('/');
         }
       } else {
         setErrorMessage(data.message || 'Login failed. Please try again.');

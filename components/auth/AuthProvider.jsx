@@ -1,11 +1,15 @@
 'use client';
 
 import { useState, useEffect, createContext, useContext } from 'react';
-import { useRouter } from 'next/compat/router';
+import { useRouter } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
 
-
-const AuthContext = createContext({ user: null, loading: false, login: () => {}, logout: () => {} });
+const AuthContext = createContext({
+  user: null,
+  loading: false,
+  login: () => {},
+  logout: () => {}
+});
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -14,44 +18,105 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const checkUserAuthentication = () => {
-      const userData = localStorage.getItem('user'); // Retrieve user info from localStorage
+      try {
+        const token = localStorage.getItem('user');
 
-      if (userData) {
-
-        const decodedToken = jwtDecode(userData);
-
-        setUser({
-          id: decodedToken.id,
-          email: decodedToken.email,
-          name: decodedToken.name,
-          role: decodedToken.role,
-          userData,
-        });
-      } else {
-        setUser(null); // No user data found in localStorage
+        if (token) {
+          const decodedToken = jwtDecode(token);
+          
+          const currentTime = Date.now() / 1000;
+          if (decodedToken.exp && decodedToken.exp < currentTime) {
+            localStorage.removeItem('user');
+            setUser(null);
+          } else {
+            setUser({
+              id: decodedToken.id,
+              email: decodedToken.email,
+              name: decodedToken.name,
+              role: decodedToken.role,
+              token,
+            });
+          }
+        } else {
+          setUser(null);
+        }
+      } catch (error) {
+        console.error('Error checking authentication:', error);
+        localStorage.removeItem('user');
+        setUser(null);
+      } finally {
+        setLoading(false);
       }
-
-      setLoading(false); // Stop loading after checking
     };
 
     checkUserAuthentication();
+
+    window.addEventListener('storage', checkUserAuthentication);
+    
+    return () => {
+      window.removeEventListener('storage', checkUserAuthentication);
+    };
   }, []);
 
-  const login = (userData) => {
-    localStorage.setItem('user', JSON.stringify(userData)); // Store user data in localStorage
-    setUser(userData); // Update the state with the user data
-    router.push('/profile'); // Redirect to the profile page after login
+  const login = async (userData) => {
+    try {
+      setLoading(true);
+      
+      // Check if userData is a token string or an object containing a token
+      let token;
+      if (typeof userData === 'string') {
+        token = userData;
+      } else if (userData && userData.token) {
+        token = userData.token;
+      } else {
+        throw new Error('Invalid token format');
+      }
+
+      // Validate token before storing
+      const decodedToken = jwtDecode(token);
+      if (!decodedToken.id || !decodedToken.email) {
+        throw new Error('Invalid token data');
+      }
+
+      // Store token in localStorage
+      localStorage.setItem('user', token);
+      
+      // Update user state
+      const userState = {
+        id: decodedToken.id,
+        email: decodedToken.email,
+        name: decodedToken.name,
+        role: decodedToken.role,
+        token,
+      };
+      
+      // Set user state before navigation
+      await setUser(userState);
+      
+      // Small delay to ensure state is updated before navigation
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Navigate to products page
+      router.push('/products');
+    } catch (error) {
+      console.error('Error during login:', error);
+      localStorage.removeItem('user');
+      setUser(null);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
   };
 
   const logout = () => {
-    localStorage.removeItem('user'); // Clear user data from localStorage
-    setUser(null); // Reset user state
-    router.push('/');
+    try {
+      localStorage.removeItem('user');
+      setUser(null);
+      router.push('/products');
+    } catch (error) {
+      console.error('Error during logout:', error);
+    }
   };
-
-  if (loading) {
-    return <div>Loading...</div>; // Display loading state until the user info is checked
-  }
 
   return (
     <AuthContext.Provider value={{ user, loading, login, logout }}>
@@ -60,4 +125,10 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
