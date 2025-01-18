@@ -327,27 +327,29 @@ const ProductForm = ({ editingProduct, onSubmit, onCancel }) => {
               <SelectValue placeholder="Category" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="groceries">Groceries</SelectItem>
-              <SelectItem value="beauty_personal_care">Beauty</SelectItem>
-              <SelectItem value="sports_fitness">Fitness</SelectItem>
-              <SelectItem value="toys_games">Games</SelectItem>
-              <SelectItem value="health_wellness">Health & Wellness</SelectItem>
-              <SelectItem value="jewelry_accessories">Jewelry</SelectItem>
-              <SelectItem value="automotive">Automotive</SelectItem>
-              <SelectItem value="pet_supplies">Pet Supplies</SelectItem>
-              <SelectItem value="baby_kids">Baby & Kids</SelectItem>
-              <SelectItem value="office_supplies">Office Supplies</SelectItem>
-              <SelectItem value="travel_luggage">Travelling</SelectItem>
-              <SelectItem value="music_instruments">
-                Musical Instruments
-              </SelectItem>
-              <SelectItem value="gardening_outdoor">Gardening</SelectItem>
-              <SelectItem value="tools_hardware">THardware Tools</SelectItem>
-              <SelectItem value="watches">Watches</SelectItem>
-              <SelectItem value="mobile_phones_accessories">
-                Mobile Phones & Accessories
-              </SelectItem>
-              <SelectItem value="gaming_consoles">Gaming</SelectItem>
+            <SelectItem value="Groceries">Groceries</SelectItem>
+                <SelectItem value="Beauty">Beauty</SelectItem>
+                <SelectItem value="Fitness">Fitness</SelectItem>
+                <SelectItem value="Games">Games</SelectItem>
+                <SelectItem value="Health & Wellness">
+                  Health & Wellness
+                </SelectItem>
+                <SelectItem value="Jewelry">Jewelry</SelectItem>
+                <SelectItem value="Automotive">Automotive</SelectItem>
+                <SelectItem value="Pet Supplies">Pet Supplies</SelectItem>
+                <SelectItem value="Baby & Kids">Baby & Kids</SelectItem>
+                <SelectItem value="Office Supplies">Office Supplies</SelectItem>
+                <SelectItem value="Travelling">Travelling</SelectItem>
+                <SelectItem value="Musical Instruments">
+                  Musical Instruments
+                </SelectItem>
+                <SelectItem value="Gardening">Gardening</SelectItem>
+                <SelectItem value="Hardware Tools">Hardware Tools</SelectItem>
+                <SelectItem value="Watches">Watches</SelectItem>
+                <SelectItem value="Mobile Phones & Accessories">
+                  Mobile Phones & Accessories
+                </SelectItem>
+                <SelectItem value="Gaming">Gaming</SelectItem>
             </SelectContent>
           </Select>
         </div>
