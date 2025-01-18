@@ -5,13 +5,12 @@ import { useRouter } from "next/router";
 import "@/app/globals.css";
 import {
   Package,
-  Trash2,
-  CheckCircle,
-  Clock,
   LogOut,
   Plus,
-  UserCircle
+  UserCircle,
 } from "lucide-react";
+
+import { validateProductForm } from "../../../utils/validators";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -146,7 +145,7 @@ const ProductForm = ({ editingProduct, onSubmit, onCancel }) => {
     previewUrls: editingProduct?.images || [],
   });
 
-  const [category, setCategory] = useState("");
+  const [formError, setFormError] = useState(""); // Add this line
 
   const handleChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -177,6 +176,33 @@ const ProductForm = ({ editingProduct, onSubmit, onCancel }) => {
         newImages: prev.newImages.filter((_, i) => i !== newImageIndex),
         previewUrls: prev.previewUrls.filter((_, i) => i !== index),
       }));
+    }
+  };
+
+  // In your ProductForm component, add this:
+  const handleSubmit = async () => {
+    const token = localStorage.getItem("user");
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+
+    try {
+      const validation = await validateProductForm(
+        formData,
+        token,
+        editingProduct?.id
+      );
+
+      if (!validation.isValid) {
+        setFormError(validation.errors.join("\n")); // Use setFormError instead
+        return;
+      }
+
+      // If validation passes, proceed with submission
+      await onSubmit(formData);
+    } catch (error) {
+      setFormError("Failed to validate product data"); // Use setFormError instead
     }
   };
 
@@ -226,6 +252,11 @@ const ProductForm = ({ editingProduct, onSubmit, onCancel }) => {
 
   return (
     <div className="space-y-4">
+      {formError && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+          {formError}
+        </div>
+      )}
       <div className="grid gap-4">
         <div className="grid gap-2">
           <Label htmlFor="name">Name</Label>
@@ -283,7 +314,12 @@ const ProductForm = ({ editingProduct, onSubmit, onCancel }) => {
         </div>
         <div className="grid gap-2">
           <Label htmlFor="category">Category</Label>
-          <Select value={category} onValueChange={setCategory}>
+          <Select
+            value={formData.category}
+            onValueChange={(selectedValue) =>
+              handleChange("category", selectedValue)
+            }
+          >
             <SelectTrigger className="w-full md:w-[200px]">
               <SelectValue placeholder="Category" />
             </SelectTrigger>
@@ -330,7 +366,7 @@ const ProductForm = ({ editingProduct, onSubmit, onCancel }) => {
           <Button variant="outline" onClick={onCancel}>
             Cancel
           </Button>
-          <Button onClick={() => onSubmit(formData)}>
+          <Button onClick={handleSubmit}>
             {editingProduct ? "Update" : "Create"} Product
           </Button>
         </div>
