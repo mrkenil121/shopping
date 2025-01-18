@@ -1,8 +1,22 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useRouter } from "next/router";
-import { Loader2 } from "lucide-react";
-import '@/app/globals.css'
+import { Loader2, Minus, Plus, ShoppingCart, TrashIcon, ArrowLeft } from "lucide-react";
+import { 
+  Card, 
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle 
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/components/ui/alert";
+import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const Cart = () => {
   const [cartItems, setCartItems] = useState([]);
@@ -55,13 +69,11 @@ const Cart = () => {
     setIsUpdating(true);
 
     try {
-      // Using POST instead of PUT since backend expects POST
-      const response = await axios.post(
+      await axios.post(
         `/api/cart`,
         { 
           productId,
           quantity: newQuantity,
-          // Remove price from request as backend uses product's salesPrice
         },
         {
           headers: {
@@ -69,8 +81,6 @@ const Cart = () => {
           },
         }
       );
-      
-      // Refresh cart after update
       await fetchCartItems();
     } catch (err) {
       setError(err.response?.data?.message || "Failed to update quantity");
@@ -81,7 +91,6 @@ const Cart = () => {
 
   const handleRemoveItem = async (productId) => {
     try {
-      // Since DELETE isn't implemented in backend, set quantity to 0
       await axios.post(
         `/api/cart`,
         { 
@@ -125,106 +134,154 @@ const Cart = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  const CartItem = ({ item }) => (
+    <Card className="mb-4">
+      <CardContent className="p-4">
+        <div className="flex items-center space-x-4">
+          <div className="flex-shrink-0">
+            {item.product.images && item.product.images.length > 0 && (
+              <img
+                src={item.product.images[0]}
+                alt={item.product.name}
+                className="w-20 h-20 object-cover rounded-md"
+              />
+            )}
+          </div>
+          <div className="flex-grow">
+            <h3 className="font-semibold text-lg">{item.product.name}</h3>
+            <p className="text-gray-600">₹{item.price.toFixed(2)}</p>
+          </div>
+          <div className="flex flex-col items-end space-y-2">
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => handleQuantityChange(item.productId, item.quantity - 1)}
+                disabled={item.quantity <= 1 || isUpdating}
+              >
+                <Minus className="h-4 w-4" />
+              </Button>
+              <span className="w-8 text-center">{item.quantity}</span>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => handleQuantityChange(item.productId, item.quantity + 1)}
+                disabled={isUpdating}
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+            <p className="font-semibold">₹{(item.quantity * item.price).toFixed(2)}</p>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => handleRemoveItem(item.productId)}
+              className="mt-2"
+            >
+              <TrashIcon className="h-4 w-4 mr-2" />
+              Remove
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">Your Cart</h1>
-      
+      <div className="flex items-center justify-between mb-8">
+        <Button
+          variant="ghost"
+          onClick={() => router.push("/products")}
+          className="mr-4"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Continue Shopping
+        </Button>
+        <h1 className="text-3xl font-bold">Your Cart</h1>
+      </div>
+
       {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-          {error}
-        </div>
+        <Alert variant="destructive" className="mb-4">
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
 
       {cartItems.length === 0 ? (
-        <div className="text-center py-8">
-          <p className="text-xl mb-4">Your cart is empty</p>
-          <button
-            onClick={() => router.push("/products")}
-            className="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600 transition-colors"
-          >
-            Continue Shopping
-          </button>
-        </div>
+        <Card className="text-center py-12">
+          <CardContent>
+            <ShoppingCart className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+            <p className="text-xl mb-4">Your cart is empty</p>
+            <Button onClick={() => router.push("/products")}>
+              Start Shopping
+            </Button>
+          </CardContent>
+        </Card>
       ) : (
-        <div>
-          <div className="space-y-4">
-            {cartItems.map((item) => (
-              <div
-                key={item.id}
-                className="flex items-center justify-between border rounded-lg p-4 shadow-sm"
-              >
-                <div className="flex items-center space-x-4">
-                  {item.product.images && item.product.images.length > 0 && (
-                    <img
-                      src={item.product.images[0]} // Use first image from images array
-                      alt={item.product.name}
-                      className="w-16 h-16 object-cover rounded"
-                    />
-                  )}
-                  <div>
-                    <h3 className="font-semibold">{item.product.name}</h3>
-                    <p className="text-gray-600">${item.price.toFixed(2)}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-4">
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => handleQuantityChange(item.productId, item.quantity - 1)}
-                      className="px-2 py-1 border rounded"
-                      disabled={item.quantity <= 1 || isUpdating}
-                    >
-                      -
-                    </button>
-                    <span className="w-8 text-center">{item.quantity}</span>
-                    <button
-                      onClick={() => handleQuantityChange(item.productId, item.quantity + 1)}
-                      className="px-2 py-1 border rounded"
-                      disabled={isUpdating}
-                    >
-                      +
-                    </button>
-                  </div>
-                  <p className="font-semibold">
-                    ${(item.quantity * item.price).toFixed(2)}
-                  </p>
-                  <button
-                    onClick={() => handleRemoveItem(item.productId)}
-                    className="text-red-500 hover:text-red-700"
-                  >
-                    Remove
-                  </button>
-                </div>
-              </div>
-            ))}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 lg:pr-6">
+            <ScrollArea className="h-[calc(100vh-200px)]">
+              {cartItems.map((item) => (
+                <CartItem key={item.id} item={item} />
+              ))}
+            </ScrollArea>
           </div>
 
-          <div className="mt-8 border-t pt-4">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-bold">Total:</h2>
-              <p className="text-2xl font-bold">${totalPrice.toFixed(2)}</p>
-            </div>
-
-            <div className="flex justify-end">
-              <button
-                onClick={handleCheckout}
-                disabled={checkoutLoading}
-                className="bg-green-500 text-white px-8 py-3 rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {checkoutLoading ? (
-                  <span className="flex items-center">
-                    <Loader2 className="animate-spin -ml-1 mr-3 h-5 w-5" />
-                    Processing...
-                  </span>
-                ) : (
-                  "Proceed to Checkout"
-                )}
-              </button>
+          <div className="lg:col-span-1">
+            <div className="sticky top-24"> {/* Adjust top value based on your navbar height */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Order Summary</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span>Subtotal</span>
+                      <span>₹{totalPrice.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Shipping</span>
+                      <span>Free</span>
+                    </div>
+                    <Separator className="my-4" />
+                    <div className="flex justify-between text-lg font-bold">
+                      <span>Total</span>
+                      <span>₹{totalPrice.toFixed(2)}</span>
+                    </div>
+                  </div>
+                </CardContent>
+                <CardFooter>
+                  <Button
+                    className="w-full"
+                    size="lg"
+                    onClick={handleCheckout}
+                    disabled={checkoutLoading}
+                  >
+                    {checkoutLoading ? (
+                      <span className="flex items-center justify-center">
+                        <Loader2 className="animate-spin mr-2 h-4 w-4" />
+                        Processing...
+                      </span>
+                    ) : (
+                      "Proceed to Checkout"
+                    )}
+                  </Button>
+                </CardFooter>
+              </Card>
             </div>
           </div>
         </div>
@@ -232,5 +289,4 @@ const Cart = () => {
     </div>
   );
 };
-
 export default Cart;

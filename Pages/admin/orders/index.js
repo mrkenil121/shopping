@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { useRouter } from 'next/router';
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import { useRouter } from "next/router";
 import {
   Table,
   TableBody,
@@ -29,8 +29,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Package, Trash2, CheckCircle, Clock, LogOut } from "lucide-react";
-import Link from 'next/link';
+import {
+  Package,
+  Trash2,
+  CheckCircle,
+  Clock,
+  LogOut,
+  UserCircle,
+} from "lucide-react";
+import Link from "next/link";
 import "@/app/globals.css";
 
 const AdminOrdersPage = () => {
@@ -46,24 +53,24 @@ const AdminOrdersPage = () => {
 
   const fetchOrders = async () => {
     try {
-      const token = localStorage.getItem('user');
+      const token = localStorage.getItem("user");
       if (!token) {
-        router.push('/login');
+        router.push("/login");
         return;
       }
 
       const response = await axios.get("/api/admin/orders", {
         headers: {
-          Authorization: `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
-      
+
       setOrders(response.data);
       setLoading(false);
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to fetch orders');
+      setError(err.response?.data?.error || "Failed to fetch orders");
       if (err.response?.status === 401) {
-        router.push('/login');
+        router.push("/login");
       }
       setLoading(false);
     }
@@ -71,45 +78,52 @@ const AdminOrdersPage = () => {
 
   const handleStatusChange = async (id, newStatus) => {
     try {
-      const token = localStorage.getItem('user');
-      
-      await axios.put(`/api/admin/orders?id=${id}`, 
+      const token = localStorage.getItem("user");
+
+      await axios.put(
+        `/api/admin/orders?id=${id}`,
         { status: newStatus.toUpperCase() }, // Convert to uppercase to match backend
         {
           headers: {
-            Authorization: `Bearer ${token}`
-          }
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
-      
+
       // Update local state
-      setOrders(orders.map(order => 
-        order.id === id ? { ...order, status: newStatus } : order
-      ));
+      setOrders(
+        orders.map((order) =>
+          order.id === id ? { ...order, status: newStatus } : order
+        )
+      );
     } catch (error) {
-      console.error('Failed to update order status:', error);
+      console.error("Failed to update order status:", error);
     }
   };
 
+  const handleLoginAsCustomer = () => {
+    router.push("/products");
+  }
+
   const handleDeleteOrder = async (id) => {
     try {
-      const token = localStorage.getItem('user');
+      const token = localStorage.getItem("user");
       await axios.delete(`/api/admin/orders?id=${id}`, {
         headers: {
-          Authorization: `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
-     
+
       // Remove from local state
-      setOrders(orders.filter(order => order.id !== id));
+      setOrders(orders.filter((order) => order.id !== id));
     } catch (error) {
-      console.error('Failed to delete order:', error);
+      console.error("Failed to delete order:", error);
     }
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('user');
-    router.push('/login');
+    localStorage.removeItem("user");
+    router.push("/login");
   };
 
   if (loading) {
@@ -129,7 +143,7 @@ const AdminOrdersPage = () => {
   }
 
   const getStatusCount = (status) => {
-    return orders.filter(o => o.status.toLowerCase() === status).length;
+    return orders.filter((o) => o.status.toLowerCase() === status).length;
   };
 
   return (
@@ -139,10 +153,19 @@ const AdminOrdersPage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex items-center">
-              <span className="text-xl font-bold text-gray-800">Admin Dashboard</span>
+              <span className="text-xl font-bold text-gray-800 -ml-2">
+                Admin Dashboard
+              </span>
             </div>
-            <div className="flex items-center gap-4">
-              <button 
+            <div className="flex items-center gap-6">
+              <button
+                onClick={handleLoginAsCustomer}
+                className="flex items-center gap-2 text-gray-700 hover:text-gray-900"
+              >
+                <UserCircle size={18} />
+                <span>Login as Customer</span>
+              </button>
+              <button
                 onClick={handleLogout}
                 className="flex items-center gap-2 text-gray-700 hover:text-gray-900"
               >
@@ -158,32 +181,32 @@ const AdminOrdersPage = () => {
         {/* Sidebar */}
         <aside className="w-64 bg-white shadow-sm min-h-screen">
           <nav className="mt-5 px-2">
-            <Link 
-              href="/admin/dashboard" 
+            <Link
+              href="/admin/dashboard"
               className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg mb-1 text-gray-700 hover:bg-gray-50"
             >
               <Package size={18} />
               <span>Dashboard</span>
             </Link>
 
-            <Link 
-              href="/admin/orders" 
+            <Link
+              href="/admin/orders"
               className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg mb-1 text-gray-700 hover:bg-gray-50"
             >
               <Package size={18} />
               <span>Orders</span>
             </Link>
 
-            <Link 
-              href="/admin/products" 
+            <Link
+              href="/admin/products"
               className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg mb-1 text-gray-700 hover:bg-gray-50"
             >
               <Package size={18} />
               <span>Products</span>
             </Link>
 
-            <Link 
-              href="/admin/users" 
+            <Link
+              href="/admin/users"
               className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg mb-1 text-gray-700 hover:bg-gray-50"
             >
               <Package size={18} />
@@ -206,11 +229,11 @@ const AdminOrdersPage = () => {
                 <div className="flex gap-4">
                   <div className="flex items-center gap-2">
                     <Clock className="text-yellow-500" size={20} />
-                    <span>Pending: {getStatusCount('pending')}</span>
+                    <span>Pending: {getStatusCount("pending")}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle className="text-green-500" size={20} />
-                    <span>Processing: {getStatusCount('processing')}</span>
+                    <span>Processing: {getStatusCount("processing")}</span>
                   </div>
                 </div>
               </div>
@@ -245,7 +268,9 @@ const AdminOrdersPage = () => {
                     <TableCell>
                       <Select
                         defaultValue={order.status.toLowerCase()}
-                        onValueChange={(value) => handleStatusChange(order.id, value)}
+                        onValueChange={(value) =>
+                          handleStatusChange(order.id, value)
+                        }
                       >
                         <SelectTrigger className="w-[120px]">
                           <SelectValue />
@@ -273,7 +298,8 @@ const AdminOrdersPage = () => {
                           <AlertDialogHeader>
                             <AlertDialogTitle>Delete Order</AlertDialogTitle>
                             <AlertDialogDescription>
-                              Are you sure you want to delete order #{order.id}? This action cannot be undone.
+                              Are you sure you want to delete order #{order.id}?
+                              This action cannot be undone.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>

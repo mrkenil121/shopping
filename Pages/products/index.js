@@ -101,7 +101,7 @@ const ProductCard = ({ product, onAddToCart, isLoading, quantity, onUpdateQuanti
       <CardContent className="p-4">
         <CardTitle className="text-lg mb-2">{product.name}</CardTitle>
         <p className="text-xl font-bold text-primary">
-          ${product.salesPrice.toFixed(2)}
+        ₹{product.salesPrice.toFixed(2)}
         </p>
       </CardContent>
       <CardFooter className="p-4 pt-0">
@@ -201,8 +201,9 @@ const ProductsPage = () => {
   const addToCart = async (product) => {
     const token = localStorage.getItem("user");
     
-    if (!token) {
+    if (!token && router) {
       router.push('/login');
+      return; 
     }
 
     setAddingToCart(prev => ({ ...prev, [product.id]: true }));
@@ -284,10 +285,23 @@ const ProductsPage = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Categories</SelectItem>
-              <SelectItem value="electronics">Electronics</SelectItem>
-              <SelectItem value="fashion">Fashion</SelectItem>
-              <SelectItem value="books">Books</SelectItem>
-              <SelectItem value="home-appliances">Home Appliances</SelectItem>
+              <SelectItem value="groceries">Groceries</SelectItem>
+              <SelectItem value="beauty_personal_care">Beauty</SelectItem>
+              <SelectItem value="sports_fitness">Fitness</SelectItem>
+              <SelectItem value="toys_games">Games</SelectItem>
+              <SelectItem value="health_wellness">Health & Wellness</SelectItem>
+              <SelectItem value="jewelry_accessories">Jewelry</SelectItem>
+              <SelectItem value="automotive">Automotive</SelectItem>
+              <SelectItem value="pet_supplies">Pet Supplies</SelectItem>
+              <SelectItem value="baby_kids">Baby & Kids</SelectItem>
+              <SelectItem value="office_supplies">Office Supplies</SelectItem>
+              <SelectItem value="travel_luggage">Travelling</SelectItem>
+              <SelectItem value="music_instruments">Musical Instruments</SelectItem>
+              <SelectItem value="gardening_outdoor">Gardening</SelectItem>
+              <SelectItem value="tools_hardware">THardware Tools</SelectItem>
+              <SelectItem value="watches">Watches</SelectItem>
+              <SelectItem value="mobile_phones_accessories">Mobile Phones & Accessories</SelectItem>
+              <SelectItem value="gaming_consoles">Gaming</SelectItem>
             </SelectContent>
           </Select>
         </div>

@@ -3,7 +3,15 @@ import axios from "axios";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import "@/app/globals.css";
-import { Package, Trash2, CheckCircle, Clock, LogOut, Plus } from "lucide-react";
+import {
+  Package,
+  Trash2,
+  CheckCircle,
+  Clock,
+  LogOut,
+  Plus,
+  UserCircle
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +32,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 const ProductCard = ({ product, onEdit, onDelete }) => {
@@ -128,37 +143,39 @@ const ProductForm = ({ editingProduct, onSubmit, onCancel }) => {
     category: editingProduct?.category || "",
     images: editingProduct?.images || [],
     newImages: [],
-    previewUrls: editingProduct?.images || []
+    previewUrls: editingProduct?.images || [],
   });
 
+  const [category, setCategory] = useState("");
+
   const handleChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
-    const previews = files.map(file => URL.createObjectURL(file));
+    const previews = files.map((file) => URL.createObjectURL(file));
 
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       newImages: [...prev.newImages, ...files],
-      previewUrls: [...prev.previewUrls, ...previews]
+      previewUrls: [...prev.previewUrls, ...previews],
     }));
   };
 
   const handleRemoveImage = (index, isExisting = false) => {
     if (isExisting) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         images: prev.images.filter((_, i) => i !== index),
-        previewUrls: prev.previewUrls.filter((_, i) => i !== index)
+        previewUrls: prev.previewUrls.filter((_, i) => i !== index),
       }));
     } else {
       const newImageIndex = index - (formData.images?.length || 0);
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         newImages: prev.newImages.filter((_, i) => i !== newImageIndex),
-        previewUrls: prev.previewUrls.filter((_, i) => i !== index)
+        previewUrls: prev.previewUrls.filter((_, i) => i !== index),
       }));
     }
   };
@@ -266,11 +283,34 @@ const ProductForm = ({ editingProduct, onSubmit, onCancel }) => {
         </div>
         <div className="grid gap-2">
           <Label htmlFor="category">Category</Label>
-          <Input
-            id="category"
-            value={formData.category}
-            onChange={(e) => handleChange("category", e.target.value)}
-          />
+          <Select value={category} onValueChange={setCategory}>
+            <SelectTrigger className="w-full md:w-[200px]">
+              <SelectValue placeholder="Category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="groceries">Groceries</SelectItem>
+              <SelectItem value="beauty_personal_care">Beauty</SelectItem>
+              <SelectItem value="sports_fitness">Fitness</SelectItem>
+              <SelectItem value="toys_games">Games</SelectItem>
+              <SelectItem value="health_wellness">Health & Wellness</SelectItem>
+              <SelectItem value="jewelry_accessories">Jewelry</SelectItem>
+              <SelectItem value="automotive">Automotive</SelectItem>
+              <SelectItem value="pet_supplies">Pet Supplies</SelectItem>
+              <SelectItem value="baby_kids">Baby & Kids</SelectItem>
+              <SelectItem value="office_supplies">Office Supplies</SelectItem>
+              <SelectItem value="travel_luggage">Travelling</SelectItem>
+              <SelectItem value="music_instruments">
+                Musical Instruments
+              </SelectItem>
+              <SelectItem value="gardening_outdoor">Gardening</SelectItem>
+              <SelectItem value="tools_hardware">THardware Tools</SelectItem>
+              <SelectItem value="watches">Watches</SelectItem>
+              <SelectItem value="mobile_phones_accessories">
+                Mobile Phones & Accessories
+              </SelectItem>
+              <SelectItem value="gaming_consoles">Gaming</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="grid gap-2">
@@ -294,7 +334,6 @@ const ProductForm = ({ editingProduct, onSubmit, onCancel }) => {
             {editingProduct ? "Update" : "Create"} Product
           </Button>
         </div>
-
       </div>
     </div>
   );
@@ -315,7 +354,7 @@ const AdminProductsPage = () => {
     tags: "",
     category: "",
     images: [],
-    previewUrls: [] // Add previewUrls to initial state
+    previewUrls: [], // Add previewUrls to initial state
   });
   const [editingProduct, setEditingProduct] = useState(null);
   const [error, setError] = useState("");
@@ -387,9 +426,10 @@ const AdminProductsPage = () => {
       submitData.append("category", formData.category);
 
       // Handle tags
-      const tags = typeof formData.tags === 'string'
-        ? formData.tags.split(',').map(tag => tag.trim())
-        : formData.tags;
+      const tags =
+        typeof formData.tags === "string"
+          ? formData.tags.split(",").map((tag) => tag.trim())
+          : formData.tags;
       submitData.append("tags", JSON.stringify(tags));
 
       // Append new images
@@ -435,9 +475,10 @@ const AdminProductsPage = () => {
       submitData.append("category", formData.category);
 
       // Handle tags
-      const tags = typeof formData.tags === 'string'
-        ? formData.tags.split(',').map(tag => tag.trim())
-        : formData.tags;
+      const tags =
+        typeof formData.tags === "string"
+          ? formData.tags.split(",").map((tag) => tag.trim())
+          : formData.tags;
       submitData.append("tags", JSON.stringify(tags));
 
       // Handle existing and new images
@@ -485,8 +526,12 @@ const AdminProductsPage = () => {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('user');
-    router.push('/login');
+    localStorage.removeItem("user");
+    router.push("/login");
+  };
+
+  const handleLoginAsCustomer = () => {
+    router.push("/products");
   };
 
   return (
@@ -495,9 +540,18 @@ const AdminProductsPage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex items-center">
-              <span className="text-xl font-bold text-gray-800">Admin Dashboard</span>
+              <span className="text-xl font-bold text-gray-800 -ml-2">
+                Admin Dashboard
+              </span>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-6">
+              <button
+                onClick={handleLoginAsCustomer}
+                className="flex items-center gap-2 text-gray-700 hover:text-gray-900"
+              >
+                <UserCircle size={18} />
+                <span>Login as Customer</span>
+              </button>
               <button
                 onClick={handleLogout}
                 className="flex items-center gap-2 text-gray-700 hover:text-gray-900"
@@ -550,7 +604,9 @@ const AdminProductsPage = () => {
         <div className="flex-1">
           <div className="container mx-auto p-6">
             <div className="flex justify-between items-center mb-6">
-              <h1 className="text-3xl font-semibold">Admin Product Management</h1>
+              <h1 className="text-3xl font-semibold">
+                Admin Product Management
+              </h1>
               <Dialog open={showForm} onOpenChange={setShowForm}>
                 <DialogTrigger asChild>
                   <Button>

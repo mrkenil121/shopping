@@ -15,7 +15,9 @@ export default function MyApp({ Component, pageProps }) {
     "/admin/dashboard",
     "/admin/products",
     "/admin/orders",
-    "/admin/users"
+    "/admin/users",
+    "/login",
+    "/signup"
   ];
 
   const shouldShowNavbar = !noNavbarRoutes.includes(router.pathname); // Use router.pathname to get the current route
@@ -25,7 +27,7 @@ export default function MyApp({ Component, pageProps }) {
       <div className={inter.className}>
         {shouldShowNavbar && <Navbar />}
         <Component {...pageProps} />
-        <Footer />
+        {shouldShowNavbar && <Footer />}
       </div>
     </AuthProvider>
   );

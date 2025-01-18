@@ -46,7 +46,7 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     localStorage.removeItem('user'); // Clear user data from localStorage
     setUser(null); // Reset user state
-    router.push('/login'); // Redirect to the login page after logout
+    router.push('/');
   };
 
   if (loading) {

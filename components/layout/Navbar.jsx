@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '../auth/AuthProvider';
-import { ShoppingCart, Package } from 'lucide-react';
+import { ShoppingCart, Package, UserCircle } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -30,16 +30,16 @@ const Navbar = () => {
         </div>
 
         <div className="flex items-center space-x-6">
-          <Link href="/" className="hover:text-gray-400">
+          <Link href="/" className="hover:text-gray-400 px-4 py-2">
             Home
           </Link>
           
-          <Link href="/orders" className="hover:text-gray-400 flex items-center gap-2">
+          <Link href="/orders" className="hover:text-gray-400 flex items-center gap-2 px-4 py-2">
             <Package size={20} />
             <span className="hidden sm:inline">Orders</span>
           </Link>
           
-          <Link href="/products/cart" className="hover:text-gray-400 flex items-center gap-2">
+          <Link href="/products/cart" className="hover:text-gray-400 flex items-center gap-2 px-4 py-2">
             <ShoppingCart size={20} />
             <span className="hidden sm:inline">Cart</span>
           </Link>
@@ -47,8 +47,9 @@ const Navbar = () => {
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="text-white hover:text-gray-400">
-                  {user.name || 'User'}
+                <Button variant="ghost" className="text-white hover:text-gray-400 flex items-center gap-2 px-4 py-2">
+                  <UserCircle size={20} />
+                  <span>{user.name || 'User'}</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-40">
@@ -58,13 +59,13 @@ const Navbar = () => {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <div className="flex items-center space-x-4">
-              <Link href="/login" className="hover:text-gray-400">
+            <div className="flex items-center">
+              <Link href="/login" className="hover:text-gray-400 px-4 py-2">
                 Login
               </Link>
               <Link
                 href="/signup"
-                className="bg-blue-600 px-4 py-2 rounded hover:bg-blue-500"
+                className="hover:text-gray-400 px-4 py-2"
               >
                 Sign Up
               </Link>
