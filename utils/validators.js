@@ -9,30 +9,6 @@ const hasFieldChanged = (newValue, originalValue) => {
   return strNew !== strOriginal;
 };
 
-// WS Code uniqueness validator
-const validateWSCodeUniqueness = async (wsCode, productId = null) => {
-  try {
-    const existingProduct = await prisma.product.findFirst({
-      where: {
-        wsCode: parseInt(wsCode),
-        ...(productId && {
-          NOT: {
-            id: parseInt(productId)
-          }
-        })
-      },
-      select: {
-        id: true
-      }
-    });
-    
-    return !existingProduct;
-  } catch (error) {
-    console.error('Error validating WS code uniqueness:', error);
-    throw new Error('Failed to validate WS code uniqueness');
-  }
-};
-
 export const validateProductForm = async (formData, token, editingProduct = null) => {
   const errors = [];
 

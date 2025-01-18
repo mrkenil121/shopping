@@ -191,7 +191,7 @@ const ProductForm = ({ editingProduct, onSubmit, onCancel }) => {
       const validation = await validateProductForm(
         formData,
         token,
-        editingProduct?.id
+        editingProduct
       );
 
       if (!validation.isValid) {
