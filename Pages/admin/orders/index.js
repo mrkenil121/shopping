@@ -79,25 +79,38 @@ const AdminOrdersPage = () => {
   const handleStatusChange = async (id, newStatus) => {
     try {
       const token = localStorage.getItem("user");
-
-      await axios.put(
-        `/api/admin/orders?id=${id}`,
-        { status: newStatus.toUpperCase() }, // Convert to uppercase to match backend
+      
+      // Validate status before making API call
+      const validStatuses = ['pending', 'accepted'];
+      if (!validStatuses.includes(newStatus.toLowerCase())) {
+        throw new Error('Invalid status');
+      }
+  
+      const response = await axios.put(
+        `/api/admin/orders`,
+        { 
+          status: newStatus.toLowerCase() 
+        },
         {
+          params: { id },
           headers: {
             Authorization: `Bearer ${token}`,
           },
         }
       );
-
-      // Update local state
-      setOrders(
-        orders.map((order) =>
-          order.id === id ? { ...order, status: newStatus } : order
-        )
-      );
+  
+      // Update local state only if API call was successful
+      if (response.data) {
+        setOrders(prevOrders =>
+          prevOrders.map((order) =>
+            order.id === id ? { ...order, ...response.data } : order
+          )
+        );
+      }
     } catch (error) {
       console.error("Failed to update order status:", error);
+      // You might want to show an error message to the user
+      setError(error.response?.data?.error || 'Failed to update order status');
     }
   };
 
@@ -233,7 +246,7 @@ const AdminOrdersPage = () => {
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle className="text-green-500" size={20} />
-                    <span>Processing: {getStatusCount("processing")}</span>
+                    <span>Accepted: {getStatusCount("accepted")}</span>
                   </div>
                 </div>
               </div>
@@ -256,7 +269,7 @@ const AdminOrdersPage = () => {
               <TableBody>
                 {orders.map((order) => (
                   <TableRow key={order.id}>
-                    <TableCell>#{order.id}</TableCell>
+                    <TableCell>{order.id}</TableCell>
                     <TableCell>{order.user.name}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -277,10 +290,7 @@ const AdminOrdersPage = () => {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="pending">Pending</SelectItem>
-                          <SelectItem value="processing">Processing</SelectItem>
-                          <SelectItem value="shipped">Shipped</SelectItem>
-                          <SelectItem value="delivered">Delivered</SelectItem>
-                          <SelectItem value="cancelled">Cancelled</SelectItem>
+                          <SelectItem value="accepted">Accepted</SelectItem>
                         </SelectContent>
                       </Select>
                     </TableCell>

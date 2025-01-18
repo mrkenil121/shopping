@@ -26,8 +26,6 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  const { id } = req.query; // Get id from query params once
-
   switch (req.method) {
     case 'GET':
       return getOrders(req, res);
@@ -76,6 +74,7 @@ async function getOrders(req, res) {
   }
 }
 
+// Backend (API handler)
 async function updateOrder(req, res) {
   const { id } = req.query;
 
@@ -87,19 +86,30 @@ async function updateOrder(req, res) {
   try {
     const { status } = req.body;
     
-    // Validate status
-    const validStatuses = ['PENDING', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED'];
-    if (!validStatuses.includes(status)) {
+    // Validate status - using lowercase to match frontend
+    const validStatuses = ['pending', 'accepted'];
+    if (!status || !validStatuses.includes(status.toLowerCase())) {
       return res.status(400).json({ error: 'Invalid status' });
     }
 
     const order = await prisma.order.update({
       where: { id: parseInt(id) },
-      data: { status },
+      data: { 
+        status: status.toLowerCase() // Ensure status is stored in lowercase
+      },
       include: {
         orderItems: {
           include: {
-            product: true
+            product: {
+              select: {
+                id: true,
+                name: true,
+                images: true,
+                salesPrice: true,
+                wsCode: true,
+                packageSize: true
+              }
+            }
           }
         }
       }
