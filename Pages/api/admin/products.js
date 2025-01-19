@@ -65,7 +65,7 @@ async function handleGet(req, res) {
       }),
       prisma.product.count(),
     ]);
-
+    
     res.status(200).json({
       products,
       totalCount,
