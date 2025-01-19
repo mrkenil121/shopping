@@ -1,8 +1,6 @@
 // pages/api/auth/resend-code.js
-import { PrismaClient } from '@prisma/client';
 import nodemailer from 'nodemailer';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/prisma';
 
 // Email configuration
 const transporter = nodemailer.createTransport({

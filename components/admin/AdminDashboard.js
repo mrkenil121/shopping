@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ShoppingCart, Package, Users } from 'lucide-react';
 import "@/app/globals.css";
+import { useRouter } from "next/router"; 
 
 const DashboardCard = ({ title, value, icon: Icon }) => (
   <Card>
@@ -36,9 +37,17 @@ const AdminDashboard = () => {
     fetchDashboardData();
   }, []);
 
+  const router = useRouter();
+
   const fetchDashboardData = async () => {
     try {
+
       const token = localStorage.getItem('user');
+
+      if(!token) {
+        router.push("/login");
+        return;
+      }
       const response = await axios.get('/api/admin/dashboard', {
         headers: { Authorization: `Bearer ${token}` }
       });

@@ -1,14 +1,7 @@
-import { PrismaClient } from '@prisma/client';
-import { validateProduct } from '@/utils/validators';
 import { adminMiddleware } from '@/middleware/adminMiddleware';
-const multer = require('multer');
-const { CloudinaryStorage } = require('multer-storage-cloudinary');
 import { IncomingForm } from 'formidable';
 import cloudinary from 'cloudinary';
-import fs from 'fs';
-
-
-const prisma = new PrismaClient();
+import { prisma } from '@/prisma';
 
 cloudinary.v2.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,

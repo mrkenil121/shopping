@@ -1,5 +1,4 @@
-// pages/api/auth/verify.js
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/prisma';
 
 const prisma = new PrismaClient();
 

@@ -1,10 +1,7 @@
-// pages/api/auth/signup.js
-import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import validator from 'validator';
 import nodemailer from 'nodemailer'; // Install with: npm install nodemailer
-
-const prisma = new PrismaClient();
+import { prisma } from '@/prisma';
 
 // Email configuration - Replace with your email service details
 const transporter = nodemailer.createTransport({

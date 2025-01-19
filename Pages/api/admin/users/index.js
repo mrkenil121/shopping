@@ -1,8 +1,6 @@
 // File: pages/api/admin/users/index.js
-import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/prisma';
 
 // Authentication middleware
 const authenticateAdmin = async (req, res) => {

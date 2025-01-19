@@ -1,9 +1,8 @@
-import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
-dotenv.config();
+import { prisma } from '@/prisma';
 
-const prisma = new PrismaClient();
+dotenv.config();
 
 // Add JWT verification middleware
 const verifyToken = (token, secret) => {
