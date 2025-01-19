@@ -54,7 +54,8 @@ async function getOrders(req, res) {
                 id: true,
                 name: true,
                 images: true,
-                salesPrice: true
+                salesPrice: true,
+                wsCode: true
               }
             }
           }

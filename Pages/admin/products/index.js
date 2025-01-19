@@ -3,12 +3,7 @@ import axios from "axios";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import "@/app/globals.css";
-import {
-  Package,
-  LogOut,
-  Plus,
-  UserCircle,
-} from "lucide-react";
+import { Package, LogOut, Plus, UserCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -19,8 +14,9 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import ProductForm  from "./ProductForm";
+import ProductForm from "./ProductForm";
 import ProductCard from "./ProductCard";
+import ErrorDialog from "@/utils/ErrorDialog";
 
 const AdminProductsPage = () => {
   const [products, setProducts] = useState([]);
@@ -41,6 +37,7 @@ const AdminProductsPage = () => {
   });
   const [editingProduct, setEditingProduct] = useState(null);
   const [error, setError] = useState("");
+  const [showErrorDialog, setShowErrorDialog] = useState(false);
   const router = useRouter();
 
   const fetchProducts = async () => {
@@ -76,14 +73,10 @@ const AdminProductsPage = () => {
   }, [page]);
 
   useEffect(() => {
-    if (error) {
-      const timer = setTimeout(() => {
-        setError("");
-      }, 3000);
-
-      return () => clearTimeout(timer);
+    if (!showErrorDialog) {
+      setError(""); // Clear error when dialog is closed
     }
-  }, [error]);
+  }, [showErrorDialog]);
 
   if (loading) {
     return (
@@ -148,7 +141,6 @@ const AdminProductsPage = () => {
       setLoading(false);
     }
   };
-
 
   const editProduct = async (formData) => {
     try {
@@ -215,7 +207,10 @@ const AdminProductsPage = () => {
 
       fetchProducts();
     } catch (error) {
-      setError("Failed to delete product because it is Ordered by Someone. Please delete that Order to proceed.");
+      setError(
+        "Failed to delete product because it is Ordered by Someone. Please delete that Order to proceed."
+      );
+      setShowErrorDialog(true);
     }
   };
 
@@ -333,9 +328,11 @@ const AdminProductsPage = () => {
             </div>
 
             {error && (
-              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-                {error}
-              </div>
+              <ErrorDialog
+                error={error}
+                open={showErrorDialog}
+                onOpenChange={setShowErrorDialog}
+              />
             )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
