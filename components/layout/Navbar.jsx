@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '../auth/AuthProvider';
-import { ShoppingCart, Package, UserCircle } from 'lucide-react';
+import { ShoppingCart, Package, UserCircle, PackageSearch } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -31,8 +31,9 @@ const Navbar = () => {
         </div>
 
         <div className="flex items-center space-x-6">
-          <Link href="/" className="hover:text-gray-400 px-4 py-2">
-            Home
+        <Link href="/orders" className="hover:text-gray-400 flex items-center gap-2 px-4 py-2">
+          <PackageSearch size={20} />
+          <span className="hidden sm:inline">Products</span>
           </Link>
           
           <Link href="/orders" className="hover:text-gray-400 flex items-center gap-2 px-4 py-2">

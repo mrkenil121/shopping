@@ -112,7 +112,7 @@ export const AuthProvider = ({ children }) => {
     try {
       localStorage.removeItem('user');
       setUser(null);
-      router.push('/products');
+      router.push('/');
     } catch (error) {
       console.error('Error during logout:', error);
     }

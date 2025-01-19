@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -102,9 +103,9 @@ const ProductCard = ({
                 </>
               )}
               {discount > 0 && (
-                <div className="absolute top-2 left-2 bg-green-600 text-white px-2 py-1 rounded-full text-sm font-medium">
+                <Badge className="absolute top-2 right-2 bg-red-500">
                   {discount}% OFF
-                </div>
+                </Badge>
               )}
             </>
           ) : (
