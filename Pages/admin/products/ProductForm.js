@@ -24,6 +24,7 @@ const ProductForm = ({ editingProduct, onSubmit, onCancel }) => {
     images: editingProduct?.images || [],
     newImages: [],
     previewUrls: editingProduct?.images || [],
+    description: editingProduct?.description || "",
   });
 
   const [formError, setFormError] = useState(""); // Add this line
@@ -181,7 +182,7 @@ const ProductForm = ({ editingProduct, onSubmit, onCancel }) => {
           </div>
         </div>
         <div className="grid gap-2">
-          <Label htmlFor="packageSize">Package Size</Label>
+          <Label htmlFor="packageSize">Available Quantity</Label>
           <Input
             id="packageSize"
             type="number"
@@ -237,15 +238,74 @@ const ProductForm = ({ editingProduct, onSubmit, onCancel }) => {
         </div>
 
         <div className="grid gap-2">
-          <Label htmlFor="images">Images</Label>
-          {renderImagePreviews()}
-          <Input
-            id="images"
-            type="file"
-            onChange={handleImageChange}
-            accept="image/*"
-            multiple
-            className="cursor-pointer"
+  <Label htmlFor="images">Images</Label>
+  <div
+    className="border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-gray-400 transition-colors"
+    onDragOver={(e) => {
+      e.preventDefault();
+      e.currentTarget.classList.add("border-blue-500");
+    }}
+    onDragLeave={(e) => {
+      e.preventDefault();
+      e.currentTarget.classList.remove("border-blue-500");
+    }}
+    onDrop={(e) => {
+      e.preventDefault();
+      e.currentTarget.classList.remove("border-blue-500");
+      const files = Array.from(e.dataTransfer.files);
+      handleImageChange({ target: { files } });
+    }}
+  >
+    <div className="text-center">
+      <div className="flex flex-col items-center gap-2">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className="h-10 w-10 text-gray-400"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+          />
+        </svg>
+        <div 
+          className="text-sm text-gray-600 cursor-pointer"
+          onClick={() => document.getElementById('images').click()}
+        >
+          <span className="font-semibold">Click to upload</span> or drag
+          and drop
+        </div>
+        <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
+      </div>
+      <Input
+        id="images"
+        type="file"
+        onChange={handleImageChange}
+        accept="image/*"
+        multiple
+        className="hidden"
+      />
+    </div>
+    {renderImagePreviews()}
+  </div>
+</div>
+
+        <div className="grid gap-2">
+          <Label htmlFor="description">Description</Label>
+          <textarea
+            id="description"
+            name="description"
+            rows={4}
+            className="text-sm w-full px-3 py-2 border rounded-md resize-none focus:outline-none focus:ring-2 hover:ring-gray-400"
+            placeholder="Enter product description..."
+            value={formData.description}
+            onChange={(e) => {
+              handleChange("description", e.target.value);
+            }}
           />
         </div>
 

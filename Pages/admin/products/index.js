@@ -102,6 +102,7 @@ const AdminProductsPage = () => {
       submitData.append("mrp", formData.mrp.toString());
       submitData.append("packageSize", formData.packageSize.toString());
       submitData.append("category", formData.category);
+      submitData.append("description", formData.description.toString());
 
       // Handle tags
       const tags =
@@ -151,6 +152,7 @@ const AdminProductsPage = () => {
       submitData.append("mrp", formData.mrp.toString());
       submitData.append("packageSize", formData.packageSize.toString());
       submitData.append("category", formData.category);
+      submitData.append("description", formData.description.toString());
 
       // Handle tags
       const tags =

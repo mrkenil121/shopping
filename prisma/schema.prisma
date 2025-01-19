@@ -36,6 +36,7 @@ model Product {
   wsCode      Int      @unique
   salesPrice  Float
   mrp         Float
+  description String
   packageSize Int
   tags        String[]
   category    String

@@ -133,6 +133,7 @@ async function handlePost(req, res) {
       tags: JSON.parse(fields.tags[0]),
       category: fields.category[0],
       images: uploadedImages,
+      description: fields.description[0],
     };
 
     const newProduct = await prisma.product.create({
@@ -207,6 +208,7 @@ async function handlePut(req, res) {
       tags: JSON.parse(fields.tags[0]),
       category: fields.category[0],
       images: updatedImages,
+      description: fields.description[0],
     };
 
     // Update product in database
