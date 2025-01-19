@@ -15,16 +15,16 @@ export const validateProductForm = async (formData, token, editingProduct = null
   try {
     // Name validation
     if (!formData.name.trim()) {
-      errors.push("Product name is required");
+      errors.push("Product name is required.");
     } else if (formData.name.length < 3) {
-      errors.push("Product name must be at least 3 characters long");
+      errors.push("Product name must be at least 3 characters long.");
     }
 
     // WS Code validation
     if (!formData.wsCode) {
-      errors.push("WS Code is required");
+      errors.push("WS Code is required.");
     } else if (formData.wsCode < 0) {
-      errors.push("WS Code must be a positive number");
+      errors.push("WS Code must be a positive number.");
     } else if (!editingProduct || hasFieldChanged(formData.wsCode, editingProduct.wsCode)) {
       // Check WS Code uniqueness via API
       try {
@@ -42,33 +42,33 @@ export const validateProductForm = async (formData, token, editingProduct = null
 
         const data = await response.json();
         if (!data.isUnique) {
-          errors.push("WS Code already exists");
+          errors.push("WS Code already exists.");
         }
       } catch (error) {
         console.error('Error checking WS code:', error);
-        errors.push("Failed to validate WS Code uniqueness");
+        errors.push("Failed to validate WS Code uniqueness.");
       }
     }
 
     // Price validations
     if (!formData.salesPrice || formData.salesPrice <= 0) {
-      errors.push("Sales price must be greater than 0");
+      errors.push("Sales price must be greater than 0.");
     }
     if (!formData.mrp || formData.mrp <= 0) {
-      errors.push("MRP must be greater than 0");
+      errors.push("MRP must be greater than 0.");
     }
     if (parseFloat(formData.salesPrice) > parseFloat(formData.mrp)) {
-      errors.push("Sales price cannot be greater than MRP");
+      errors.push("Sales price cannot be greater than MRP.");
     }
 
     // Package size validation
     if (!formData.packageSize || formData.packageSize <= 0) {
-      errors.push("Package size must be greater than 0");
+      errors.push("Package size must be greater than 0.");
     }
 
     // Category validation
     if (!formData.category) {
-      errors.push("Category is required");
+      errors.push("Category is required.");
     }
 
     // Image validation
@@ -76,12 +76,12 @@ export const validateProductForm = async (formData, token, editingProduct = null
     
     // For new products
     if (!editingProduct && totalImages === 0) {
-      errors.push("At least one product image is required");
+      errors.push("At least one product image is required.");
     }
     
     // For edits - only validate if all images are being removed
     if (editingProduct && totalImages === 0) {
-      errors.push("At least one product image is required");
+      errors.push("At least one product image is required.");
     }
 
     return {
@@ -92,7 +92,7 @@ export const validateProductForm = async (formData, token, editingProduct = null
     console.error('Validation error:', error);
     return {
       isValid: false,
-      errors: ["Failed to validate product data"]
+      errors: ["Failed to validate product data."]
     };
   }
 };

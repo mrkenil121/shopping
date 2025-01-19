@@ -64,7 +64,7 @@ const AdminOrdersPage = () => {
           Authorization: `Bearer ${token}`,
         },
       });
-
+      
       setOrders(response.data);
       setLoading(false);
     } catch (err) {
