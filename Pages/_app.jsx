@@ -27,7 +27,7 @@ export default function MyApp({ Component, pageProps }) {
     <AuthProvider>
       <div  className="{inter.className}">
         {shouldShowNavbar && <Navbar />}
-        <div style={{minheight:"100vh"}} classname="min-h-screen">
+        <div className="min-h-screen">
         <Component {...pageProps} />
         </div>
         {shouldShowNavbar && <Footer />}

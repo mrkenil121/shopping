@@ -198,6 +198,7 @@ const ProductsPage = () => {
   };
 
   const fetchCartItems = async () => {
+    
     const token = localStorage.getItem("user");
     if (!token) {
       setCartLoading(false);

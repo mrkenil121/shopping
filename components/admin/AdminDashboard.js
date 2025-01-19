@@ -100,13 +100,13 @@ const AdminDashboard = () => {
                 <div key={order.id} className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <ShoppingCart size={16} />
-                    <span>Order #{order.id}</span>
+                    <span>Order {order.id}</span>
                   </div>
                   <div className="flex flex-col items-end">
                     <span className={`text-sm px-2 py-1 rounded-full ${
                       order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'
                     }`}>
-                      {order.status}
+                    <div className="text-xs">{order.status.charAt(0).toUpperCase() + order.status.slice(1)}</div>
                     </span>
                     <span className="text-sm text-gray-500">
                       ₹{order.totalAmount}
@@ -132,7 +132,7 @@ const AdminDashboard = () => {
                   </div>
                   <div className="flex flex-col items-end">
                     <span className="text-sm text-gray-500">
-                      WS#{product.wsCode}
+                      WS {product.wsCode}
                     </span>
                     <span className="text-sm font-medium">
                       ₹{product.salesPrice}

@@ -1,15 +1,8 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import Link from "next/link";
 import { useRouter } from "next/router";
 import "@/app/globals.css";
 import {
-  LayoutDashboard,
-  Package,
-  Users,
-  ShoppingCart,
-  LogOut,
-  UserCircle,
   Plus
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -25,6 +18,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import ProductForm from "./ProductForm";
 import ProductCard from "./ProductCard";
 import ErrorDialog from "@/utils/ErrorDialog";
+import Navbar from "@/components/admin/Navbar"
+import Sidebar from "@/components/admin/Sidebar"
 
 const AdminProductsPage = () => {
   const [products, setProducts] = useState([]);
@@ -32,17 +27,6 @@ const AdminProductsPage = () => {
   const [loading, setLoading] = useState(true);
   const [totalPages, setTotalPages] = useState(1);
   const [showForm, setShowForm] = useState(false);
-  const [newProduct, setNewProduct] = useState({
-    name: "",
-    wsCode: "",
-    salesPrice: "",
-    mrp: "",
-    packageSize: "",
-    tags: "",
-    category: "",
-    images: [],
-    previewUrls: [], // Add previewUrls to initial state
-  });
   const [editingProduct, setEditingProduct] = useState(null);
   const [error, setError] = useState("");
   const [showErrorDialog, setShowErrorDialog] = useState(false);
@@ -222,104 +206,12 @@ const AdminProductsPage = () => {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("user");
-    router.push("/login");
-  };
-
-  const handleLoginAsCustomer = () => {
-    router.push("/products");
-  };
-
-  const isActive = (path) => router.pathname === path;
-
   return (
     <div className="min-h-screen bg-gray-100">
-      <nav className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <span className="text-xl font-bold text-gray-800 -ml-2">
-                Admin Dashboard
-              </span>
-            </div>
-            <div className="flex items-center gap-6">
-              <button
-                onClick={handleLoginAsCustomer}
-                className="flex items-center gap-2 text-gray-700 hover:text-gray-900"
-              >
-                <UserCircle size={18} />
-                <span>Login as Customer</span>
-              </button>
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-2 text-gray-700 hover:text-gray-900"
-              >
-                <LogOut size={18} />
-                <span>Logout</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Navbar/>
 
       <div className="flex">
-        {/* Sidebar */}
-        <aside className="w-64 bg-white shadow-sm min-h-screen">
-          <nav className="mt-5 px-2">
-            <Link
-              href="/admin/dashboard"
-              className={`flex items-center gap-2 px-4 py-2 text-sm rounded-lg mb-1
-                ${
-                  isActive("/admin/dashboard")
-                    ? "bg-blue-50 text-blue-700"
-                    : "text-gray-700 hover:bg-gray-50"
-                }`}
-            >
-              <LayoutDashboard size={18} />
-              <span>Dashboard</span>
-            </Link>
-
-            <Link
-              href="/admin/orders"
-              className={`flex items-center gap-2 px-4 py-2 text-sm rounded-lg mb-1
-                ${
-                  isActive("/admin/orders")
-                    ? "bg-blue-50 text-blue-700"
-                    : "text-gray-700 hover:bg-gray-50"
-                }`}
-            >
-              <ShoppingCart size={18} />
-              <span>Orders</span>
-            </Link>
-
-            <Link
-              href="/admin/products"
-              className={`flex items-center gap-2 px-4 py-2 text-sm rounded-lg mb-1
-                ${
-                  isActive("/admin/products")
-                    ? "bg-blue-50 text-blue-700"
-                    : "text-gray-700 hover:bg-gray-50"
-                }`}
-            >
-              <Package size={18} />
-              <span>Products</span>
-            </Link>
-
-            <Link
-              href="/admin/users"
-              className={`flex items-center gap-2 px-4 py-2 text-sm rounded-lg mb-1
-                ${
-                  isActive("/admin/users")
-                    ? "bg-blue-50 text-blue-700"
-                    : "text-gray-700 hover:bg-gray-50"
-                }`}
-            >
-              <Users size={18} />
-              <span>Users</span>
-            </Link>
-          </nav>
-        </aside>
+        <Sidebar/>
 
         <div className="flex-1">
           <div className="container mx-auto p-6">
