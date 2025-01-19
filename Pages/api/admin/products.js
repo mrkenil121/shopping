@@ -60,6 +60,7 @@ async function handleGet(req, res) {
           category: true,
           images: true,
           createdAt: true,
+          description: true,
         }
       }),
       prisma.product.count(),

@@ -298,7 +298,6 @@ const ProductForm = ({ editingProduct, onSubmit, onCancel }) => {
           <Label htmlFor="description">Description</Label>
           <textarea
             id="description"
-            name="description"
             rows={4}
             className="text-sm w-full px-3 py-2 border rounded-md resize-none focus:outline-none focus:ring-2 hover:ring-gray-400"
             placeholder="Enter product description..."
