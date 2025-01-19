@@ -3,7 +3,15 @@ import axios from "axios";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import "@/app/globals.css";
-import { Package, LogOut, Plus, UserCircle } from "lucide-react";
+import {
+  LayoutDashboard,
+  Package,
+  Users,
+  ShoppingCart,
+  LogOut,
+  UserCircle,
+  Plus
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -223,6 +231,8 @@ const AdminProductsPage = () => {
     router.push("/products");
   };
 
+  const isActive = (path) => router.pathname === path;
+
   return (
     <div className="min-h-screen bg-gray-100">
       <nav className="bg-white shadow-sm border-b">
@@ -259,23 +269,38 @@ const AdminProductsPage = () => {
           <nav className="mt-5 px-2">
             <Link
               href="/admin/dashboard"
-              className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg mb-1 text-gray-700 hover:bg-gray-50"
+              className={`flex items-center gap-2 px-4 py-2 text-sm rounded-lg mb-1
+                ${
+                  isActive("/admin/dashboard")
+                    ? "bg-blue-50 text-blue-700"
+                    : "text-gray-700 hover:bg-gray-50"
+                }`}
             >
-              <Package size={18} />
+              <LayoutDashboard size={18} />
               <span>Dashboard</span>
             </Link>
 
             <Link
               href="/admin/orders"
-              className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg mb-1 text-gray-700 hover:bg-gray-50"
+              className={`flex items-center gap-2 px-4 py-2 text-sm rounded-lg mb-1
+                ${
+                  isActive("/admin/orders")
+                    ? "bg-blue-50 text-blue-700"
+                    : "text-gray-700 hover:bg-gray-50"
+                }`}
             >
-              <Package size={18} />
+              <ShoppingCart size={18} />
               <span>Orders</span>
             </Link>
 
             <Link
               href="/admin/products"
-              className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg mb-1 text-gray-700 hover:bg-gray-50"
+              className={`flex items-center gap-2 px-4 py-2 text-sm rounded-lg mb-1
+                ${
+                  isActive("/admin/products")
+                    ? "bg-blue-50 text-blue-700"
+                    : "text-gray-700 hover:bg-gray-50"
+                }`}
             >
               <Package size={18} />
               <span>Products</span>
@@ -283,13 +308,19 @@ const AdminProductsPage = () => {
 
             <Link
               href="/admin/users"
-              className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg mb-1 text-gray-700 hover:bg-gray-50"
+              className={`flex items-center gap-2 px-4 py-2 text-sm rounded-lg mb-1
+                ${
+                  isActive("/admin/users")
+                    ? "bg-blue-50 text-blue-700"
+                    : "text-gray-700 hover:bg-gray-50"
+                }`}
             >
-              <Package size={18} />
+              <Users size={18} />
               <span>Users</span>
             </Link>
           </nav>
         </aside>
+
         <div className="flex-1">
           <div className="container mx-auto p-6">
             <div className="flex justify-between items-center mb-6">

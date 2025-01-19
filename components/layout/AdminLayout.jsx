@@ -7,7 +7,6 @@ import {
   Users,
   ShoppingCart,
   LogOut,
-  ChevronDown,
   UserCircle,
 } from "lucide-react";
 

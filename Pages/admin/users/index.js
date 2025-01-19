@@ -39,6 +39,8 @@ import {
   ChevronLeft,
   ChevronRight,
   UserCircle,
+  LayoutDashboard,
+  ShoppingCart
 } from "lucide-react";
 import Link from "next/link";
 import "@/app/globals.css";
@@ -156,6 +158,8 @@ const AdminUsersPage = () => {
     );
   }
 
+  const isActive = (path) => router.pathname === path;
+
   return (
     <div className="min-h-screen bg-gray-100">
       {/* Top Navigation Bar */}
@@ -193,23 +197,38 @@ const AdminUsersPage = () => {
           <nav className="mt-5 px-2">
             <Link
               href="/admin/dashboard"
-              className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg mb-1 text-gray-700 hover:bg-gray-50"
+              className={`flex items-center gap-2 px-4 py-2 text-sm rounded-lg mb-1
+                ${
+                  isActive("/admin/dashboard")
+                    ? "bg-blue-50 text-blue-700"
+                    : "text-gray-700 hover:bg-gray-50"
+                }`}
             >
-              <Package size={18} />
+              <LayoutDashboard size={18} />
               <span>Dashboard</span>
             </Link>
 
             <Link
               href="/admin/orders"
-              className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg mb-1 text-gray-700 hover:bg-gray-50"
+              className={`flex items-center gap-2 px-4 py-2 text-sm rounded-lg mb-1
+                ${
+                  isActive("/admin/orders")
+                    ? "bg-blue-50 text-blue-700"
+                    : "text-gray-700 hover:bg-gray-50"
+                }`}
             >
-              <Package size={18} />
+              <ShoppingCart size={18} />
               <span>Orders</span>
             </Link>
 
             <Link
               href="/admin/products"
-              className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg mb-1 text-gray-700 hover:bg-gray-50"
+              className={`flex items-center gap-2 px-4 py-2 text-sm rounded-lg mb-1
+                ${
+                  isActive("/admin/products")
+                    ? "bg-blue-50 text-blue-700"
+                    : "text-gray-700 hover:bg-gray-50"
+                }`}
             >
               <Package size={18} />
               <span>Products</span>
@@ -217,7 +236,12 @@ const AdminUsersPage = () => {
 
             <Link
               href="/admin/users"
-              className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg mb-1 bg-gray-100 text-gray-900"
+              className={`flex items-center gap-2 px-4 py-2 text-sm rounded-lg mb-1
+                ${
+                  isActive("/admin/users")
+                    ? "bg-blue-50 text-blue-700"
+                    : "text-gray-700 hover:bg-gray-50"
+                }`}
             >
               <Users size={18} />
               <span>Users</span>

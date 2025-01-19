@@ -31,13 +31,15 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+  LayoutDashboard,
   Package,
+  Users,
+  ShoppingCart,
+  LogOut,
   Trash2,
   CheckCircle,
   Clock,
-  LogOut,
-  UserCircle,
-  Search,
+  UserCircle
 } from "lucide-react";
 import Link from "next/link";
 import "@/app/globals.css";
@@ -50,6 +52,8 @@ const AdminOrdersPage = () => {
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchFilter, setSearchFilter] = useState("all");
+
+  const isActive = (path) => router.pathname === path;
 
   useEffect(() => {
     fetchOrders();
@@ -193,6 +197,10 @@ const AdminOrdersPage = () => {
       .length;
   };
 
+  const handleLoginAsCustomer = () => {
+    router.push("/products");
+  };
+
   return (
     <div className="min-h-screen bg-gray-100">
       {/* Top Navigation Bar */}
@@ -204,7 +212,14 @@ const AdminOrdersPage = () => {
                 Admin Dashboard
               </span>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-6">
+              <button
+                onClick={handleLoginAsCustomer}
+                className="flex items-center gap-2 text-gray-700 hover:text-gray-900"
+              >
+                <UserCircle size={18} />
+                <span>Login as Customer</span>
+              </button>
               <button
                 onClick={handleLogout}
                 className="flex items-center gap-2 text-gray-700 hover:text-gray-900"
@@ -223,23 +238,38 @@ const AdminOrdersPage = () => {
           <nav className="mt-5 px-2">
             <Link
               href="/admin/dashboard"
-              className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg mb-1 text-gray-700 hover:bg-gray-50"
+              className={`flex items-center gap-2 px-4 py-2 text-sm rounded-lg mb-1
+                ${
+                  isActive("/admin/dashboard")
+                    ? "bg-blue-50 text-blue-700"
+                    : "text-gray-700 hover:bg-gray-50"
+                }`}
             >
-              <Package size={18} />
+              <LayoutDashboard size={18} />
               <span>Dashboard</span>
             </Link>
 
             <Link
               href="/admin/orders"
-              className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg mb-1 text-gray-700 hover:bg-gray-50"
+              className={`flex items-center gap-2 px-4 py-2 text-sm rounded-lg mb-1
+                ${
+                  isActive("/admin/orders")
+                    ? "bg-blue-50 text-blue-700"
+                    : "text-gray-700 hover:bg-gray-50"
+                }`}
             >
-              <Package size={18} />
+              <ShoppingCart size={18} />
               <span>Orders</span>
             </Link>
 
             <Link
               href="/admin/products"
-              className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg mb-1 text-gray-700 hover:bg-gray-50"
+              className={`flex items-center gap-2 px-4 py-2 text-sm rounded-lg mb-1
+                ${
+                  isActive("/admin/products")
+                    ? "bg-blue-50 text-blue-700"
+                    : "text-gray-700 hover:bg-gray-50"
+                }`}
             >
               <Package size={18} />
               <span>Products</span>
@@ -247,9 +277,14 @@ const AdminOrdersPage = () => {
 
             <Link
               href="/admin/users"
-              className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg mb-1 text-gray-700 hover:bg-gray-50"
+              className={`flex items-center gap-2 px-4 py-2 text-sm rounded-lg mb-1
+                ${
+                  isActive("/admin/users")
+                    ? "bg-blue-50 text-blue-700"
+                    : "text-gray-700 hover:bg-gray-50"
+                }`}
             >
-              <Package size={18} />
+              <Users size={18} />
               <span>Users</span>
             </Link>
           </nav>
@@ -311,98 +346,111 @@ const AdminOrdersPage = () => {
           <div className="bg-white rounded-lg shadow overflow-x-auto">
             <Table>
               {/* First the table header */}
-<TableHeader>
-  <TableRow>
-    <TableHead>Order ID</TableHead>
-    <TableHead>Customer</TableHead>
-    <TableHead>
-      <div className="grid grid-cols-4 gap-4">
-        <div>Product</div>
-        <div className="text-gray-500 text-sm">WS Code</div>
-        <div className="text-gray-500 text-sm">Price</div>
-        <div className="text-gray-500 text-sm">Quantity</div>
-      </div>
-    </TableHead>
-    <TableHead>Total</TableHead>
-    <TableHead>Status</TableHead>
-    <TableHead>Date</TableHead>
-    <TableHead>Actions</TableHead>
-  </TableRow>
-</TableHeader>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Order ID</TableHead>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>
+                    <div className="grid grid-cols-4 gap-4">
+                      <div>Product</div>
+                      <div className="text-gray-500 text-sm">WS Code</div>
+                      <div className="text-gray-500 text-sm">Price</div>
+                      <div className="text-gray-500 text-sm">Quantity</div>
+                    </div>
+                  </TableHead>
+                  <TableHead>Total</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
 
-{/* Then the table body */}
-<TableBody>
-  {filteredOrders.map((order) => (
-    <TableRow key={order.id}>
-      <TableCell>{order.id}</TableCell>
-      <TableCell>
-        <div>
-          <div className="font-medium">{order.user.name}</div>
-          <div className="text-sm text-gray-500">{order.user.email}</div>
-        </div>
-      </TableCell>
-      <TableCell>
-        <div className="flex flex-col gap-4">
-          {order.orderItems.map((item) => (
-            <div key={item.id} className="grid grid-cols-4 gap-4">
-              <div className="flex items-center gap-2">
-                <Package size={16} />
-                <span className="font-medium">{item.product.name}</span>
-              </div>
-              <div className="text-sm text-gray-500">{item.product.wsCode}</div>
-              <div className="text-sm text-gray-500">₹{item.product.salesPrice.toFixed(2)}</div>
-              <div className="text-sm text-gray-500">{item.quantity}</div>
-            </div>
-          ))}
-        </div>
-      </TableCell>
-      <TableCell>₹{order.totalAmount.toFixed(2)}</TableCell>
-      <TableCell>
-        <Select
-          defaultValue={order.status.toLowerCase()}
-          onValueChange={(value) => handleStatusChange(order.id, value)}
-        >
-          <SelectTrigger className="w-[120px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="accepted">Accepted</SelectItem>
-          </SelectContent>
-        </Select>
-      </TableCell>
-      <TableCell>
-        {new Date(order.createdAt).toLocaleDateString()}
-      </TableCell>
-      <TableCell>
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button variant="destructive" size="sm">
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete Order</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to delete order #{order.id}? This action cannot be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() => handleDeleteOrder(order.id)}
-                className="bg-red-500 hover:bg-red-600"
-              >
-                Delete
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </TableCell>
-    </TableRow>
-  ))}
-</TableBody>
+              {/* Then the table body */}
+              <TableBody>
+                {filteredOrders.map((order) => (
+                  <TableRow key={order.id}>
+                    <TableCell>{order.id}</TableCell>
+                    <TableCell>
+                      <div>
+                        <div className="font-medium">{order.user.name}</div>
+                        <div className="text-sm text-gray-500">
+                          {order.user.email}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col gap-4">
+                        {order.orderItems.map((item) => (
+                          <div key={item.id} className="grid grid-cols-4 gap-4">
+                            <div className="flex items-center gap-2">
+                              <Package size={16} />
+                              <span className="font-medium">
+                                {item.product.name}
+                              </span>
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {item.product.wsCode}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              ₹{item.product.salesPrice.toFixed(2)}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {item.quantity}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </TableCell>
+                    <TableCell>₹{order.totalAmount.toFixed(2)}</TableCell>
+                    <TableCell>
+                      <Select
+                        defaultValue={order.status.toLowerCase()}
+                        onValueChange={(value) =>
+                          handleStatusChange(order.id, value)
+                        }
+                      >
+                        <SelectTrigger className="w-[120px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pending">Pending</SelectItem>
+                          <SelectItem value="accepted">Accepted</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell>
+                      {new Date(order.createdAt).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="destructive" size="sm">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Order</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete order #{order.id}?
+                              This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDeleteOrder(order.id)}
+                              className="bg-red-500 hover:bg-red-600"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
             </Table>
           </div>
         </div>
