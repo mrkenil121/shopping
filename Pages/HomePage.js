@@ -92,7 +92,7 @@ const HomePage = () => {
           </p>
           {!localStorage.getItem("user") && (
             <Button
-              className="w-full md:w-auto text-lg py-6 bg-blue-600 hover:bg-blue-700"
+              className="w-full md:w-auto text-lg py-6 bg-black hover:bg-gray-800" style={{color: "#CBB26A"}}
               onClick={() => router.push("/login")}
             >
               Sign in to Buy Products

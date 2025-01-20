@@ -11,6 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import Image from 'next/image';
 
 const Navbar = () => {
   const { user, logout } = useAuth();
@@ -24,13 +25,15 @@ const Navbar = () => {
   if (!isClient) return null;
   
   return (
-    <nav style={{zIndex:"1"}} className="bg-gray-800 text-white sticky top-0 w-full">
+    <nav style={{zIndex:"100"}} className="bg-gray-800 text-white sticky top-0 w-full">
       <div className="container mx-auto px-4 py-3 flex justify-between items-center">
         <div className="text-xl font-bold">
-          <Link href="/">MyApp</Link>
+          <Link href="/">
+          <Image src="/images/logo1.png" alt="logo" width={180} height={30} />
+          </Link>
         </div>
 
-        <div className="flex items-center space-x-6">
+        <div className="flex items-center space-x-6 text-color" style={{color:"#CBB26A"}}>
         <Link href="/products" className="hover:text-gray-400 flex items-center gap-2 px-4 py-2">
           <PackageSearch size={20} />
           <span className="hidden sm:inline">Products</span>
@@ -49,7 +52,7 @@ const Navbar = () => {
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="text-white hover:text-gray-400 flex items-center gap-2 px-4 py-2">
+                <Button variant="ghost" className="hover:text-gray-400 hover:bg-gray-600 flex items-center gap-2 px-4 py-2" style={{color:"#CBB26A"}}>
                   <UserCircle size={20} />
                   <span>{user.name || 'User'}</span>
                 </Button>

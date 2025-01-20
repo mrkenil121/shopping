@@ -21,7 +21,7 @@ async function sendVerificationEmail(email, code) {
   const mailOptions = {
     from: process.env.EMAIL_USER,
     to: email,
-    subject: 'New Mshopping Verification Code',
+    subject: 'New orderly Verification Code',
     html: `
       <!DOCTYPE html>
     <html lang="en">

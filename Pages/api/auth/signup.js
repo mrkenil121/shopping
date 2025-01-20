@@ -22,7 +22,7 @@ async function sendVerificationEmail(email, code, name) {
   const mailOptions = {
     from: process.env.EMAIL_USER,
     to: email,
-    subject: 'Mshopping Verification Code',
+    subject: 'orderly Verification Code',
     html: `
       <!DOCTYPE html>
     <html lang="en">
