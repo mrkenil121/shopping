@@ -4,6 +4,7 @@ import { AuthProvider } from "../components/auth/AuthProvider";
 import Navbar from "../components/layout/Navbar";
 import Footer from "../components/layout/Footer";
 import { useRouter } from "next/router"; // Import useRouter
+import { Toaster } from "@/components/ui/toaster";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -30,6 +31,7 @@ export default function MyApp({ Component, pageProps }) {
         <div className="min-h-screen">
         <Component {...pageProps} />
         </div>
+        <Toaster />
         {shouldShowNavbar && <Footer />}
       </div>
     </AuthProvider>

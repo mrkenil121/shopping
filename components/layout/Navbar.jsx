@@ -31,7 +31,7 @@ const Navbar = () => {
         </div>
 
         <div className="flex items-center space-x-6">
-        <Link href="/orders" className="hover:text-gray-400 flex items-center gap-2 px-4 py-2">
+        <Link href="/products" className="hover:text-gray-400 flex items-center gap-2 px-4 py-2">
           <PackageSearch size={20} />
           <span className="hidden sm:inline">Products</span>
           </Link>

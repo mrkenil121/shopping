@@ -28,6 +28,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "next/compat/router";
+import { useToast } from "@/hooks/use-toast";
 import "@/app/globals.css";
 
 const ProductCard = ({
@@ -37,7 +38,9 @@ const ProductCard = ({
   quantity,
   onUpdateQuantity,
 }) => {
+
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const router = useRouter();
 
   const nextImage = (e) => {
     e.stopPropagation();
@@ -57,12 +60,17 @@ const ProductCard = ({
     }
   };
 
+  const handleClick = (id) => {
+    router.push(`/products/details/${id}`);
+  }
+
   const discount = Math.round(
     ((product.mrp - product.salesPrice) / product.mrp) * 100
   );
 
   return (
-    <Card className="relative group overflow-hidden">
+    <Card className="relative group overflow-hidden"
+          >
       <CardHeader className="p-0">
         <div className="relative h-64">
           {product.images && product.images.length > 0 ? (
@@ -71,6 +79,7 @@ const ProductCard = ({
                 src={product.images[currentImageIndex]}
                 alt={`${product.name} - Image ${currentImageIndex + 1}`}
                 className="w-full h-64 object-cover rounded-t-lg"
+                onClick={() => {handleClick(product.id)}}
               />
               {product.images.length > 1 && (
                 <>
@@ -92,11 +101,10 @@ const ProductCard = ({
                     {product.images.map((_, index) => (
                       <div
                         key={index}
-                        className={`h-1.5 w-1.5 rounded-full transition-all ${
-                          index === currentImageIndex
+                        className={`h-1.5 w-1.5 rounded-full transition-all ${index === currentImageIndex
                             ? "bg-white w-3"
                             : "bg-white/50"
-                        }`}
+                          }`}
                       />
                     ))}
                   </div>
@@ -170,6 +178,8 @@ const ProductCard = ({
 };
 
 const ProductsPage = () => {
+  const router = useRouter();
+  const { toast } = useToast();
   const [category, setCategory] = useState("all");
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -178,7 +188,6 @@ const ProductsPage = () => {
   const [addingToCart, setAddingToCart] = useState({});
   const [cartItems, setCartItems] = useState({});
   const [error, setError] = useState(null);
-  const router = useRouter();
 
   // Existing fetch functions remain the same
   const fetchProducts = async () => {
@@ -193,13 +202,18 @@ const ProductsPage = () => {
     } catch (error) {
       console.error("Error fetching products:", error);
       setError("Failed to load products. Please try again later.");
+      toast({
+        title: "Error",
+        description: "Failed to load products. Please try again later.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
   };
 
   const fetchCartItems = async () => {
-    
+
     const token = localStorage.getItem("user");
     if (!token) {
       setCartLoading(false);
@@ -217,6 +231,11 @@ const ProductsPage = () => {
       setCartItems(cartMap);
     } catch (error) {
       console.error("Error fetching cart:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch cart items",
+        variant: "destructive",
+      });
     } finally {
       setCartLoading(false);
     }
@@ -231,6 +250,11 @@ const ProductsPage = () => {
     const token = localStorage.getItem("user");
 
     if (!token) {
+      toast({
+        title: "Authentication Required",
+        description: "Please login to add items to cart",
+        variant: "destructive",
+      });
       router.push("/login");
       return;
     }
@@ -245,8 +269,18 @@ const ProductsPage = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       await fetchCartItems();
+      toast({
+        title: "Success",
+        description: `${product.name} added to cart`,
+      });
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to add item to cart");
+      const errorMessage = err.response?.data?.message || "Failed to add item to cart";
+      setError(errorMessage);
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
     } finally {
       setAddingToCart((prev) => ({ ...prev, [product.id]: false }));
     }
@@ -256,7 +290,12 @@ const ProductsPage = () => {
     const token = localStorage.getItem("user");
 
     if (!token) {
-      router.push(`/login`);
+      toast({
+        title: "Authentication Required",
+        description: "Please login to update cart",
+        variant: "destructive",
+      });
+      router.push("/login");
       return;
     }
 
@@ -269,8 +308,26 @@ const ProductsPage = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       await fetchCartItems();
+      
+      if (newQuantity === 0) {
+        toast({
+          title: "Item Removed",
+          description: "Product removed from cart",
+        });
+      } else {
+        toast({
+          title: "Cart Updated",
+          description: "Quantity updated successfully",
+        });
+      }
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to update quantity");
+      const errorMessage = err.response?.data?.message || "Failed to update quantity";
+      setError(errorMessage);
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
     } finally {
       setAddingToCart((prev) => ({ ...prev, [productId]: false }));
     }
@@ -280,103 +337,107 @@ const ProductsPage = () => {
     product.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+
+
   return (
-    <div>
-      <div className="container mx-auto p-6">
-        <div className="flex flex-col gap-6">
-          <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold tracking-tight">Products</h1>
-          </div>
-
-          {error && (
-            <Alert variant="destructive">
-              <AlertTitle>Error</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search products..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8"
-              />
+    <>
+      <div>
+        <div className="container mx-auto p-6">
+          <div className="flex flex-col gap-6">
+            <div className="flex items-center justify-between">
+              <h1 className="text-3xl font-bold tracking-tight">Products</h1>
             </div>
-            <Select value={category} onValueChange={setCategory}>
-              <SelectTrigger className="w-full md:w-[200px]">
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                <SelectItem value="Groceries">Groceries</SelectItem>
-                <SelectItem value="Beauty">Beauty</SelectItem>
-                <SelectItem value="Fitness">Fitness</SelectItem>
-                <SelectItem value="Games">Games</SelectItem>
-                <SelectItem value="Health & Wellness">
-                  Health & Wellness
-                </SelectItem>
-                <SelectItem value="Jewelry">Jewelry</SelectItem>
-                <SelectItem value="Automotive">Automotive</SelectItem>
-                <SelectItem value="Pet Supplies">Pet Supplies</SelectItem>
-                <SelectItem value="Baby & Kids">Baby & Kids</SelectItem>
-                <SelectItem value="Office Supplies">Office Supplies</SelectItem>
-                <SelectItem value="Travelling">Travelling</SelectItem>
-                <SelectItem value="Musical Instruments">
-                  Musical Instruments
-                </SelectItem>
-                <SelectItem value="Gardening">Gardening</SelectItem>
-                <SelectItem value="Hardware Tools">Hardware Tools</SelectItem>
-                <SelectItem value="Watches">Watches</SelectItem>
-                <SelectItem value="Mobile Phones & Accessories">
-                  Mobile Phones & Accessories
-                </SelectItem>
-                <SelectItem value="Gaming">Gaming</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
 
-          {loading || cartLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4">
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => (
-                <Card key={i}>
-                  <CardContent className="p-4">
-                    <Skeleton className="h-48 w-full mb-4" />
-                    <Skeleton className="h-4 w-2/3 mb-2" />
-                    <Skeleton className="h-4 w-1/3" />
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : filteredProducts.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4">
-              {filteredProducts.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  onAddToCart={addToCart}
-                  isLoading={addingToCart[product.id]}
-                  quantity={cartItems[product.id]}
-                  onUpdateQuantity={updateQuantity}
+            {error && (
+              <Alert variant="destructive">
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search products..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-8"
                 />
-              ))}
+              </div>
+              <Select value={category} onValueChange={setCategory}>
+                <SelectTrigger className="w-full md:w-[200px]">
+                  <SelectValue placeholder="Category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  <SelectItem value="Groceries">Groceries</SelectItem>
+                  <SelectItem value="Beauty">Beauty</SelectItem>
+                  <SelectItem value="Fitness">Fitness</SelectItem>
+                  <SelectItem value="Games">Games</SelectItem>
+                  <SelectItem value="Health & Wellness">
+                    Health & Wellness
+                  </SelectItem>
+                  <SelectItem value="Jewelry">Jewelry</SelectItem>
+                  <SelectItem value="Automotive">Automotive</SelectItem>
+                  <SelectItem value="Pet Supplies">Pet Supplies</SelectItem>
+                  <SelectItem value="Baby & Kids">Baby & Kids</SelectItem>
+                  <SelectItem value="Office Supplies">Office Supplies</SelectItem>
+                  <SelectItem value="Travelling">Travelling</SelectItem>
+                  <SelectItem value="Musical Instruments">
+                    Musical Instruments
+                  </SelectItem>
+                  <SelectItem value="Gardening">Gardening</SelectItem>
+                  <SelectItem value="Hardware Tools">Hardware Tools</SelectItem>
+                  <SelectItem value="Watches">Watches</SelectItem>
+                  <SelectItem value="Mobile Phones & Accessories">
+                    Mobile Phones & Accessories
+                  </SelectItem>
+                  <SelectItem value="Gaming">Gaming</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-          ) : (
-            <div className="text-center py-12">
-              <h3 className="text-lg font-medium text-muted-foreground">
-                No products found
-              </h3>
-              <p className="text-sm text-muted-foreground mt-1">
-                Try adjusting your search or filter to find what you're looking
-                for.
-              </p>
-            </div>
-          )}
+
+            {loading || cartLoading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4">
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => (
+                  <Card key={i}>
+                    <CardContent className="p-4">
+                      <Skeleton className="h-48 w-full mb-4" />
+                      <Skeleton className="h-4 w-2/3 mb-2" />
+                      <Skeleton className="h-4 w-1/3" />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : filteredProducts.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4">
+                {filteredProducts.map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    onAddToCart={addToCart}
+                    isLoading={addingToCart[product.id]}
+                    quantity={cartItems[product.id]}
+                    onUpdateQuantity={updateQuantity}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <h3 className="text-lg font-medium text-muted-foreground">
+                  No products found
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Try adjusting your search or filter to find what you're looking
+                  for.
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
