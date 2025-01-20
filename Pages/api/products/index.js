@@ -18,7 +18,7 @@ export default async function handler(req, res) {
 
 // GET: Fetch all products with pagination
 async function handleGet(req, res) {
-  const { page = 1, pageSize = 10 } = req.query;
+  const { page = 1, pageSize = 8 } = req.query;
 
   // Validate pagination
   const pageNumber = Math.max(1, parseInt(page, 10));
@@ -29,6 +29,7 @@ async function handleGet(req, res) {
 
   const [products, totalCount] = await Promise.all([
     prisma.product.findMany({
+      where,
       skip,
       take,
       orderBy: { createdAt: "desc" },
@@ -40,5 +41,7 @@ async function handleGet(req, res) {
     products,
     totalCount,
     totalPages: Math.ceil(totalCount / pageSizeNumber),
+    currentPage: pageNumber,
+    pageSize: pageSizeNumber
   });
 }
