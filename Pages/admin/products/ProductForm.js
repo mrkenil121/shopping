@@ -212,7 +212,7 @@ const ProductForm = ({ editingProduct, onSubmit, onCancel }) => {
             <SelectContent>
               <SelectItem value="Groceries">Groceries</SelectItem>
               <SelectItem value="Beauty">Beauty</SelectItem>
-              <SelectItem value="Fitness">Fitness</SelectItem>
+              <SelectItem value="Fitness">Men's Accessories</SelectItem>
               <SelectItem value="Games">Games</SelectItem>
               <SelectItem value="Health & Wellness">
                 Health & Wellness

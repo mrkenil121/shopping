@@ -30,14 +30,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Package,
-  Trash2,
-  CheckCircle,
-  Clock,
-} from "lucide-react";
-import Navbar from "@/components/admin/Navbar"
-import Sidebar from "@/components/admin/Sidebar"
+import { Package, Trash2, CheckCircle, Clock } from "lucide-react";
+import Navbar from "@/components/admin/Navbar";
+import Sidebar from "@/components/admin/Sidebar";
 import "@/app/globals.css";
 
 const AdminOrdersPage = () => {
@@ -188,9 +183,9 @@ const AdminOrdersPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-100">
-     <Navbar/>
+      <Navbar />
       <div className="flex">
-        <Sidebar/>
+        <Sidebar />
 
         {/* Main Content */}
         <div className="flex-1 p-8">
@@ -308,8 +303,9 @@ const AdminOrdersPage = () => {
                       <Select
                         defaultValue={order.status.toLowerCase()}
                         onValueChange={(value) =>
-                          handleStatusChange(order.id, value)
+                          handleStatusChange(order.id, value, order.status)
                         }
+                        disabled={order.status.toLowerCase() === "accepted"}
                       >
                         <SelectTrigger className="w-[120px]">
                           <SelectValue />

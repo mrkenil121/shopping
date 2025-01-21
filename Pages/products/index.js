@@ -38,7 +38,6 @@ const ProductCard = ({
   quantity,
   onUpdateQuantity,
 }) => {
-
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const router = useRouter();
 
@@ -69,8 +68,7 @@ const ProductCard = ({
   );
 
   return (
-    <Card className="relative group overflow-hidden"
-    >
+    <Card className="relative group overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
       <CardHeader className="p-0">
         <div className="relative h-64">
           {product.images && product.images.length > 0 ? (
@@ -78,7 +76,7 @@ const ProductCard = ({
               <img
                 src={product.images[currentImageIndex]}
                 alt={`${product.name} - Image ${currentImageIndex + 1}`}
-                className="w-full h-64 object-cover rounded-t-lg"
+                className="w-full h-64 object-cover rounded-t-lg transition-transform duration-300 group-hover:scale-105"
                 onClick={() => { handleClick(product.id) }}
               />
               {product.images.length > 1 && (
@@ -101,10 +99,11 @@ const ProductCard = ({
                     {product.images.map((_, index) => (
                       <div
                         key={index}
-                        className={`h-1.5 w-1.5 rounded-full transition-all ${index === currentImageIndex
-                          ? "bg-white w-3"
-                          : "bg-white/50"
-                          }`}
+                        className={`h-1.5 w-1.5 rounded-full transition-all ${
+                          index === currentImageIndex
+                            ? "bg-white w-3"
+                            : "bg-white/50"
+                        }`}
                       />
                     ))}
                   </div>
@@ -124,7 +123,7 @@ const ProductCard = ({
         </div>
       </CardHeader>
       <CardContent className="p-4">
-        <CardTitle className="text-lg line-clamp-1 mb-1">
+        <CardTitle className="text-lg line-clamp-1 mb-1 group-hover:text-primary transition-colors">
           {product.name}
         </CardTitle>
         <div className="flex items-baseline gap-2 mt-2">
@@ -145,30 +144,40 @@ const ProductCard = ({
             {quantity ? "Updating..." : "Adding..."}
           </Button>
         ) : quantity ? (
-          <div className="flex items-center justify-between w-full border rounded-md">
+          <div className="flex items-center justify-between w-full">
             <Button
-              variant="ghost"
-              size="sm"
-              onClick={() =>
-                onUpdateQuantity(product.id, Math.max(0, quantity - 1))
-              }
-              className="hover:bg-primary/10"
+              variant="outline"
+              size="icon"
+              onClick={() => onUpdateQuantity(product.id, Math.max(0, quantity - 1))}
+              className="hover:bg-primary/10 relative group/btn"
             >
               <span className="text-lg font-medium">−</span>
+              <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-black text-white text-xs py-1 px-2 rounded opacity-0 group-hover/btn:opacity-100 transition-opacity whitespace-nowrap">
+                Remove
+              </span>
             </Button>
-            <span className="text-sm font-medium">{quantity} in cart</span>
+            <div className="flex items-center gap-2">
+              <ShoppingCart className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium">{quantity}</span>
+            </div>
             <Button
-              variant="ghost"
-              size="sm"
+              variant="outline"
+              size="icon"
               onClick={() => onUpdateQuantity(product.id, quantity + 1)}
-              className="hover:bg-primary/10"
+              className="hover:bg-primary/10 relative group/btn"
             >
               <span className="text-lg font-medium">+</span>
+              <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-black text-white text-xs py-1 px-2 rounded opacity-0 group-hover/btn:opacity-100 transition-opacity whitespace-nowrap">
+                Add
+              </span>
             </Button>
           </div>
         ) : (
-          <Button className="w-full" onClick={() => onAddToCart(product)}>
-            <ShoppingCart className="mr-2 h-4 w-4" />
+          <Button 
+            className="w-full group/cart transition-all hover:bg-primary/90" 
+            onClick={() => onAddToCart(product)}
+          >
+            <ShoppingCart className="mr-2 h-4 w-4 transition-all group-hover/cart:scale-110" />
             Add to Cart
           </Button>
         )}
@@ -469,7 +478,7 @@ const ProductsPage = () => {
                   <SelectItem value="all">All Categories</SelectItem>
                   <SelectItem value="Groceries">Groceries</SelectItem>
                   <SelectItem value="Beauty">Beauty</SelectItem>
-                  <SelectItem value="Fitness">Fitness</SelectItem>
+                  <SelectItem value="Fitness">Men's Accessories</SelectItem>
                   <SelectItem value="Games">Games</SelectItem>
                   <SelectItem value="Health & Wellness">
                     Health & Wellness
