@@ -228,98 +228,9 @@ const ProductsPage = () => {
     }
   };
 
-  // Reset to first page when category changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [category]);
-
-  // Fetch products when page or category changes
-  useEffect(() => {
-    fetchProducts();
-    fetchCartItems();
-  }, [category, currentPage]);
-
-  // Other existing functions remain the same...
-
   const filteredProducts = products.filter((product) =>
     product.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
-
-  // Reset to first page when search query changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery]);
-
-  const renderPaginationButtons = () => {
-    const buttons = [];
-    const maxButtons = 5;
-
-    // Calculate actual last page correctly
-    const actualTotalPages = Math.ceil(totalProducts / pageSize);
-
-    // Use actualTotalPages instead of totalPages
-    let startPage = Math.max(1, currentPage - Math.floor(maxButtons / 2));
-    let endPage = Math.min(actualTotalPages, startPage + maxButtons - 1);
-
-    if (endPage - startPage + 1 < maxButtons) {
-      startPage = Math.max(1, endPage - maxButtons + 1);
-    }
-
-    if (startPage > 1) {
-      buttons.push(
-        <Button
-          key="1"
-          variant="outline"
-          size="sm"
-          onClick={() => setCurrentPage(1)}
-        >
-          1
-        </Button>
-      );
-      if (startPage > 2) {
-        buttons.push(
-          <span key="dots1" className="px-2 text-muted-foreground">
-            ...
-          </span>
-        );
-      }
-    }
-
-    for (let i = startPage; i <= endPage; i++) {
-      buttons.push(
-        <Button
-          key={i}
-          variant={currentPage === i ? "default" : "outline"}
-          size="sm"
-          onClick={() => setCurrentPage(i)}
-        >
-          {i}
-        </Button>
-      );
-    }
-
-    if (endPage < actualTotalPages) {
-      if (endPage < actualTotalPages - 1) {
-        buttons.push(
-          <span key="dots2" className="px-2 text-muted-foreground">
-            ...
-          </span>
-        );
-      }
-      buttons.push(
-        <Button
-          key={actualTotalPages}
-          variant="outline"
-          size="sm"
-          onClick={() => setCurrentPage(actualTotalPages)}
-        >
-          {actualTotalPages}
-        </Button>
-      );
-    }
-
-    return buttons;
-  };
 
 
   const fetchCartItems = async () => {
@@ -517,54 +428,19 @@ const ProductsPage = () => {
               </div>
             ) : filteredProducts.length > 0 ? (
               <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4">
-                  {filteredProducts.map((product) => (
-                    <ProductCard
-                      key={product.id}
-                      product={product}
-                      onAddToCart={addToCart}
-                      isLoading={addingToCart[product.id]}
-                      quantity={cartItems[product.id]}
-                      onUpdateQuantity={updateQuantity}
-                    />
-                  ))}
-                </div>
-
-                {/* Pagination UI */}
-                {/* <div className="mt-8 flex flex-col items-center gap-4">
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                      disabled={currentPage === 1}
-                    >
-                      <ChevronLeft className="h-4 w-4 mr-1" />
-                      Previous
-                    </Button>
-
-                    <div className="flex items-center gap-2">
-                      {renderPaginationButtons()}
-                    </div>
-
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                      disabled={currentPage === totalPages}
-                    >
-                      Next
-                      <ChevronRight className="h-4 w-4 ml-1" />
-                    </Button>
-                  </div>
-
-                  <p className="text-sm text-muted-foreground">
-                    Showing {Math.min(((currentPage - 1) * pageSize) + 1, totalProducts)} to{" "}
-                    {Math.min(currentPage * pageSize, totalProducts)} of{" "}
-                    {totalProducts} products
-                  </p>
-                </div> */}
-              </>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4">
+                {filteredProducts.map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    onAddToCart={addToCart}
+                    isLoading={addingToCart[product.id]}
+                    quantity={cartItems[product.id]}
+                    onUpdateQuantity={updateQuantity}
+                  />
+                ))}
+              </div>
+            </>
             ) : (
               <div className="text-center py-12">
                 <h3 className="text-lg font-medium text-muted-foreground">

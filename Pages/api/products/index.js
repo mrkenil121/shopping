@@ -24,8 +24,8 @@ async function handleGet(req, res) {
   const pageNumber = Math.max(1, parseInt(page, 10));
   const pageSizeNumber = Math.max(1, parseInt(pageSize, 10));
 
-  const skip = (pageNumber - 1) * pageSizeNumber;
-  const take = pageSizeNumber;
+  const skip = (Number(page) - 1) * Number(pageSize);
+  const take = Number(pageSize);
 
   const [products, totalCount] = await Promise.all([
     prisma.product.findMany({
